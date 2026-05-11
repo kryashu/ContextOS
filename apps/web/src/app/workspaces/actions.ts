@@ -12,6 +12,8 @@ import {
   clearOutputDir,
   updateWorkspace,
   computeSourceHashes,
+  deleteWorkspace,
+  deleteSourceFile,
 } from '@/lib/workspaces';
 import { TableCalculator } from '@contextos/calculator';
 
@@ -209,5 +211,36 @@ export async function runCalculation(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, message: `Calculation failed: ${msg}` };
+  }
+}
+
+export async function deleteWorkspaceAction(
+  workspaceId: string,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    if (workspaceId === 'demo') {
+      return { success: false, message: 'The demo workspace cannot be deleted.' };
+    }
+    deleteWorkspace(workspaceId);
+    return { success: true, message: 'Workspace deleted.' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Failed to delete workspace: ${msg}` };
+  }
+}
+
+export async function deleteSourceFileAction(
+  workspaceId: string,
+  fileName: string,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    if (workspaceId === 'demo') {
+      return { success: false, message: 'Demo workspace files cannot be deleted.' };
+    }
+    deleteSourceFile(workspaceId, fileName);
+    return { success: true, message: `Deleted ${fileName}.` };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Failed to delete file: ${msg}` };
   }
 }
