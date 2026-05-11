@@ -77,6 +77,8 @@ export type {
   CalculationSourceRef,
   CalculationResultRow,
   CalculationResult,
+  ChartType,
+  ChartSpec,
 } from './calculation.js';
 
 // Source profile types

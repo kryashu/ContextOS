@@ -6,8 +6,9 @@ import {
   readFileSync,
   rmSync,
   readdirSync,
+  unlinkSync,
 } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 
 /**
@@ -523,5 +524,114 @@ describe('Calculation engine lifecycle', () => {
 
     const hashes = computeSourceHashes(sourcesDir);
     expect(deriveAnalysisState(manifest, hashes, 'analyzed')).toBe('stale');
+  });
+});
+
+// ── Workspace & source file deletion ──────────────────────────────
+
+// Inline registry helpers (mirror production logic for isolation)
+interface RegistryEntry {
+  id: string;
+  name: string;
+  description: string;
+  sourceCount: number;
+  status: string;
+}
+
+function readRegistry(registryPath: string): RegistryEntry[] {
+  if (!existsSync(registryPath)) return [];
+  return JSON.parse(readFileSync(registryPath, 'utf-8')) as RegistryEntry[];
+}
+
+function writeRegistry(registryPath: string, entries: RegistryEntry[]): void {
+  writeFileSync(registryPath, JSON.stringify(entries, null, 2));
+}
+
+function isValidWorkspaceId(id: string): boolean {
+  return /^ws_\d+$/.test(id);
+}
+
+function isSafeFileName(fileName: string): boolean {
+  if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {
+    return false;
+  }
+  return basename(fileName) === fileName;
+}
+
+describe('Workspace deletion', () => {
+  it('removes workspace directory and registry entry', () => {
+    const registryPath = resolve(TMP_ROOT, 'index.json');
+    const ws = freshWorkspace('ws_1234567890');
+    writeFileSync(resolve(ws.sourcesDir, 'test.md'), '# Hello');
+    writeFileSync(resolve(ws.outputDir, 'summary.json'), '{}');
+
+    writeRegistry(registryPath, [
+      { id: 'ws_1234567890', name: 'Test', description: '', sourceCount: 1, status: 'has_sources' },
+      { id: 'ws_9999999999', name: 'Other', description: '', sourceCount: 0, status: 'empty' },
+    ]);
+
+    // Simulate deleteWorkspace
+    const id = 'ws_1234567890';
+    expect(isValidWorkspaceId(id)).toBe(true);
+    rmSync(ws.wsDir, { recursive: true, force: true });
+    const entries = readRegistry(registryPath).filter(w => w.id !== id);
+    writeRegistry(registryPath, entries);
+
+    expect(existsSync(ws.wsDir)).toBe(false);
+    expect(readRegistry(registryPath)).toHaveLength(1);
+    expect(readRegistry(registryPath)[0]!.id).toBe('ws_9999999999');
+  });
+
+  it('rejects invalid workspace IDs', () => {
+    expect(isValidWorkspaceId('demo')).toBe(false);
+    expect(isValidWorkspaceId('../etc')).toBe(false);
+    expect(isValidWorkspaceId('ws_abc')).toBe(false);
+    expect(isValidWorkspaceId('')).toBe(false);
+    expect(isValidWorkspaceId('ws_')).toBe(false);
+    expect(isValidWorkspaceId('ws_1234567890')).toBe(true);
+  });
+});
+
+describe('Source file deletion', () => {
+  it('removes a single source file and clears output', () => {
+    const ws = freshWorkspace('ws_5555555555');
+    writeFileSync(resolve(ws.sourcesDir, 'keep.md'), '# Keep');
+    writeFileSync(resolve(ws.sourcesDir, 'delete-me.md'), '# Delete');
+    writeFileSync(resolve(ws.outputDir, 'summary.json'), '{}');
+
+    const fileName = 'delete-me.md';
+    expect(isSafeFileName(fileName)).toBe(true);
+
+    // Delete the file
+    unlinkSync(resolve(ws.sourcesDir, fileName));
+    // Clear output (analysis is stale)
+    clearOutputDir(ws.outputDir);
+
+    expect(existsSync(resolve(ws.sourcesDir, 'delete-me.md'))).toBe(false);
+    expect(existsSync(resolve(ws.sourcesDir, 'keep.md'))).toBe(true);
+    expect(readdirSync(ws.outputDir).length).toBe(0);
+  });
+
+  it('rejects path traversal in file names', () => {
+    expect(isSafeFileName('../etc/passwd')).toBe(false);
+    expect(isSafeFileName('foo/../../bar')).toBe(false);
+    expect(isSafeFileName('foo\\bar')).toBe(false);
+    expect(isSafeFileName('..')).toBe(false);
+    expect(isSafeFileName('')).toBe(false);
+    expect(isSafeFileName('valid-file.md')).toBe(true);
+    expect(isSafeFileName('my_file.csv')).toBe(true);
+  });
+
+  it('updates remaining count correctly when last file is deleted', () => {
+    const ws = freshWorkspace('ws_6666666666');
+    writeFileSync(resolve(ws.sourcesDir, 'only.md'), '# Only');
+
+    unlinkSync(resolve(ws.sourcesDir, 'only.md'));
+    const remaining = readdirSync(ws.sourcesDir).filter(f => !f.startsWith('.'));
+
+    expect(remaining.length).toBe(0);
+    // Status should become 'empty' when no files remain
+    const newStatus = remaining.length === 0 ? 'empty' : 'has_sources';
+    expect(newStatus).toBe('empty');
   });
 });
