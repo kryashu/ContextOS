@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync, unlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { resolve } from 'node:path';
+import { resolve, basename } from 'node:path';
 
 /** Monorepo root — apps/web -> apps -> root */
 const ROOT_DIR = resolve(process.cwd(), '..', '..');
@@ -135,4 +135,70 @@ function detectFileType(fileName: string): string {
   if (fileName.includes('.figma.')) return 'figma';
   if (fileName.includes('.confluence.')) return 'confluence';
   return 'unknown';
+}
+
+function isValidWorkspaceId(id: string): boolean {
+  return /^ws_\d+$/.test(id);
+}
+
+function isSafeFileName(fileName: string): boolean {
+  // Reject path separators, parent directory traversal, and empty names
+  if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {
+    return false;
+  }
+  // Ensure the basename matches the original (no path tricks)
+  return basename(fileName) === fileName;
+}
+
+export function deleteWorkspace(id: string): void {
+  if (!isValidWorkspaceId(id)) {
+    throw new Error('Invalid workspace ID.');
+  }
+
+  const entries = readRegistry();
+  const idx = entries.findIndex(w => w.id === id);
+  if (idx === -1) {
+    throw new Error('Workspace not found.');
+  }
+
+  // Remove workspace directory from disk
+  const dir = getWorkspaceDir(id);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  // Remove from registry
+  entries.splice(idx, 1);
+  writeRegistry(entries);
+}
+
+export function deleteSourceFile(workspaceId: string, fileName: string): void {
+  if (!isValidWorkspaceId(workspaceId)) {
+    throw new Error('Invalid workspace ID.');
+  }
+  if (!isSafeFileName(fileName)) {
+    throw new Error('Invalid file name.');
+  }
+
+  const workspace = getWorkspace(workspaceId);
+  if (!workspace) {
+    throw new Error('Workspace not found.');
+  }
+
+  const filePath = resolve(getSourcesDir(workspaceId), fileName);
+  if (!existsSync(filePath)) {
+    throw new Error('File not found.');
+  }
+
+  unlinkSync(filePath);
+
+  // Clear stale output
+  clearOutputDir(workspaceId);
+
+  // Update registry
+  const remaining = listSourceFiles(workspaceId);
+  updateWorkspace(workspaceId, {
+    sourceCount: remaining.length,
+    status: remaining.length === 0 ? 'empty' : 'has_sources',
+  });
 }
