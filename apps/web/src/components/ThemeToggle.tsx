@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Button } from '@contextos/ui';
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -21,22 +22,12 @@ export default function ThemeToggle() {
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={toggle}
-      aria-label="Toggle theme"
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      style={{
-        background: 'none',
-        border: '1px solid var(--color-border)',
-        borderRadius: 6,
-        cursor: 'pointer',
-        fontSize: 18,
-        padding: '4px 8px',
-        color: 'var(--color-fg)',
-        lineHeight: 1,
-      }}
     >
       {theme === 'dark' ? '☀️' : '🌙'}
-    </button>
+    </Button>
   );
 }

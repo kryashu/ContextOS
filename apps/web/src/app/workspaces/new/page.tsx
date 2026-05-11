@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createWorkspaceAction } from '../actions';
+import { Input, Textarea, Button } from '@contextos/ui';
 
 export default function NewWorkspacePage() {
   const router = useRouter();
@@ -33,24 +34,13 @@ export default function NewWorkspacePage() {
           <label htmlFor="name" style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
             Name <span style={{ color: '#f85149' }}>*</span>
           </label>
-          <input
+          <Input
             id="name"
             name="name"
             type="text"
             required
             maxLength={100}
             placeholder="e.g. Payment Service"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              fontSize: 14,
-              backgroundColor: 'var(--color-input-bg)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              color: 'var(--color-fg)',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
           />
         </div>
 
@@ -58,24 +48,12 @@ export default function NewWorkspacePage() {
           <label htmlFor="description" style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
             Description
           </label>
-          <textarea
+          <Textarea
             id="description"
             name="description"
             rows={3}
             maxLength={500}
             placeholder="Brief description of the workspace"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              fontSize: 14,
-              backgroundColor: 'var(--color-input-bg)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              color: 'var(--color-fg)',
-              outline: 'none',
-              resize: 'vertical',
-              boxSizing: 'border-box',
-            }}
           />
         </div>
 
@@ -84,37 +62,20 @@ export default function NewWorkspacePage() {
         )}
 
         <div style={{ display: 'flex', gap: 12 }}>
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={isPending}
-            style={{
-              backgroundColor: isPending ? 'var(--color-btn-disabled)' : '#238636',
-              color: '#fff',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              padding: '8px 16px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: isPending ? 'not-allowed' : 'pointer',
-            }}
           >
             {isPending ? 'Creating...' : 'Create Workspace'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => router.push('/workspaces')}
-            style={{
-              backgroundColor: 'var(--color-border-subtle)',
-              color: 'var(--color-fg)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              padding: '8px 16px',
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>

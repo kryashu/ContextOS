@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { notFound } from 'next/navigation';
 
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
+import { formatRelativeTime } from '@/lib/utils';
+import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
 import { runWorkspaceAnalysis } from '../actions';
 
 import WorkspaceSummary from '@/components/WorkspaceSummary';
@@ -82,16 +84,6 @@ function readText(filePath: string): string | null {
   } catch {
     return null;
   }
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 interface PageProps {
@@ -216,19 +208,9 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         <div>
           <h1 style={{ margin: 0, fontSize: 24 }}>
             📁 {workspace.name}
-            <span style={{
-              marginLeft: 10,
-              fontSize: 12,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 4,
-              backgroundColor: statusColor,
-              color: '#fff',
-              verticalAlign: 'middle',
-              textTransform: 'uppercase',
-            }}>
+            <Badge color={statusColor}>
               {workspace.status.replace('_', ' ')}
-            </span>
+            </Badge>
           </h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>
             {workspace.description || workspace.id}
@@ -247,71 +229,37 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
 
       {/* Analysis State Banner */}
       {analysisState === 'stale' && (
-        <div style={{
-          border: '1px solid #d29922',
-          borderRadius: 8,
-          padding: '12px 20px',
-          backgroundColor: '#2d2200',
-          color: '#d29922',
-          marginBottom: 24,
-          fontSize: 14,
-        }}>
+        <Banner variant="warning">
           ⚠️ Analysis is stale. Sources changed after this report was generated. Click &quot;Run Analysis&quot; to update.
-        </div>
+        </Banner>
       )}
 
       {analysisState === 'failed' && (
-        <div style={{
-          border: '1px solid #f85149',
-          borderRadius: 8,
-          padding: '12px 20px',
-          backgroundColor: '#2d0000',
-          color: '#f85149',
-          marginBottom: 24,
-          fontSize: 14,
-        }}>
+        <Banner variant="error">
           ❌ Analysis failed. Try running analysis again or check the uploaded source files.
-        </div>
+        </Banner>
       )}
 
       {/* Source Files Section */}
-      <div style={{
-        border: '1px solid var(--color-border)',
-        borderRadius: 8,
-        padding: 20,
-        backgroundColor: 'var(--color-surface)',
-        marginBottom: 24,
-      }}>
+      <Card style={{ padding: 20, marginBottom: 24 }}>
         <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📄 Source Files ({sourceFiles.length})</h2>
         <FileUpload workspaceId={workspace.id} />
         <SourceFileList files={sourceFiles} workspaceId={workspace.id} allowDelete />
-      </div>
+      </Card>
 
       {/* No analysis yet */}
       {analysisState === 'none' && sourceFiles.length > 0 && (
-        <div style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          padding: 32,
-          textAlign: 'center',
-          color: 'var(--color-muted)',
-        }}>
-          <p style={{ fontSize: 18, margin: '0 0 8px' }}>No analysis results yet.</p>
-          <p style={{ margin: 0 }}>Click &quot;Run Analysis&quot; to process the uploaded files.</p>
-        </div>
+        <EmptyState
+          title="No analysis results yet."
+          subtitle='Click "Run Analysis" to process the uploaded files.'
+        />
       )}
 
       {analysisState === 'none' && sourceFiles.length === 0 && (
-        <div style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          padding: 32,
-          textAlign: 'center',
-          color: 'var(--color-muted)',
-        }}>
-          <p style={{ fontSize: 18, margin: '0 0 8px' }}>Upload source files to begin.</p>
-          <p style={{ margin: 0 }}>Supported formats: .md, .csv, .json, .txt, .yaml, .yml, .xlsx</p>
-        </div>
+        <EmptyState
+          title="Upload source files to begin."
+          subtitle="Supported formats: .md, .csv, .json, .txt, .yaml, .yml, .xlsx"
+        />
       )}
 
       {/* Analysis Results — only render when manifest exists and state is current or stale */}
@@ -335,26 +283,20 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
 
       {/* Workbook Intelligence — only when manifest confirms it */}
       {(analysisState === 'current' || analysisState === 'stale') && workbookProfile && (
-        <div style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
+        <Card style={{
           padding: 20,
-          backgroundColor: 'var(--color-surface)',
           marginTop: summary ? 24 : 0,
           opacity: analysisState === 'stale' ? 0.7 : 1,
         }}>
           <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📊 Workbook Profile</h2>
           <WorkbookProfileView profile={workbookProfile} observationCount={normalizedObs?.length ?? 0} />
-        </div>
+        </Card>
       )}
 
       {/* Calculation Engine — when observations are available */}
       {(analysisState === 'current' || analysisState === 'stale') && normalizedObs && normalizedObs.length > 0 && (
-        <div style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
+        <Card style={{
           padding: 20,
-          backgroundColor: 'var(--color-surface)',
           marginTop: 24,
           opacity: analysisState === 'stale' ? 0.7 : 1,
         }}>
@@ -365,7 +307,7 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
             filterOptions={calcFilterOptions}
             analysisState={analysisState}
           />
-        </div>
+        </Card>
       )}
     </div>
   );

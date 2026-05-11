@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { Button } from '@contextos/ui';
 
 interface Props {
   action: () => Promise<{ success: boolean; message: string }>;
@@ -24,22 +25,15 @@ export default function RunAnalysisButton({ action }: Props) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <button
+      <Button
+        variant="primary"
         onClick={handleClick}
         disabled={isPending}
-        style={{
-          backgroundColor: isPending ? 'var(--color-btn-disabled)' : '#238636',
-          color: '#fff',
-          border: '1px solid var(--color-border)',
-          borderRadius: 6,
-          padding: '8px 16px',
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: isPending ? 'not-allowed' : 'pointer',
-        }}
+        loading={isPending}
+        icon={isPending ? undefined : '▶'}
       >
-        {isPending ? '⏳ Running...' : '▶ Run Analysis'}
-      </button>
+        {isPending ? 'Running...' : 'Run Analysis'}
+      </Button>
       {result && !result.success && (
         <span style={{ color: '#f85149', fontSize: 13 }}>{result.message}</span>
       )}

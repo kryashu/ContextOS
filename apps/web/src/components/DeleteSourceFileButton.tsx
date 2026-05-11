@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { deleteSourceFileAction } from '@/app/workspaces/actions';
+import { Button } from '@contextos/ui';
 
 interface Props {
   workspaceId: string;
@@ -34,23 +35,14 @@ export default function DeleteSourceFileButton({ workspaceId, fileName }: Props)
 
   return (
     <>
-      <button
+      <Button
+        variant="icon"
         onClick={handleClick}
         disabled={isPending}
+        loading={isPending}
+        icon={isPending ? undefined : '🗑️'}
         title={`Delete ${fileName}`}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: isPending ? 'not-allowed' : 'pointer',
-          fontSize: 16,
-          padding: '2px 6px',
-          borderRadius: 4,
-          opacity: isPending ? 0.5 : 1,
-          color: '#f85149',
-        }}
-      >
-        {isPending ? '⏳' : '🗑️'}
-      </button>
+      />
       {error && (
         <span style={{ color: '#f85149', fontSize: 11 }}>{error}</span>
       )}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteWorkspaceAction } from '@/app/workspaces/actions';
+import { Button } from '@contextos/ui';
 
 interface Props {
   workspaceId: string;
@@ -36,22 +37,15 @@ export default function DeleteWorkspaceButton({ workspaceId, workspaceName }: Pr
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <button
+      <Button
+        variant="danger"
         onClick={handleClick}
         disabled={isPending}
-        style={{
-          backgroundColor: isPending ? 'var(--color-btn-disabled)' : '#da3633',
-          color: '#fff',
-          border: '1px solid #f85149',
-          borderRadius: 6,
-          padding: '8px 16px',
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: isPending ? 'not-allowed' : 'pointer',
-        }}
+        loading={isPending}
+        icon={isPending ? undefined : '🗑️'}
       >
-        {isPending ? '⏳ Deleting...' : '🗑️ Delete Workspace'}
-      </button>
+        {isPending ? 'Deleting...' : 'Delete Workspace'}
+      </Button>
       {error && (
         <span style={{ color: '#f85149', fontSize: 13 }}>{error}</span>
       )}

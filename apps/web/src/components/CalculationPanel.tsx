@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { runCalculation } from '@/app/workspaces/actions';
 import CalculationResultTable from './CalculationResultTable';
+import { Banner, Button, Select } from '@contextos/ui';
 
 const OPERATIONS = ['count', 'sum', 'average', 'min', 'max', 'median', 'subtract', 'difference', 'percentage_change'] as const;
 const COMPARISON_OPS = new Set(['subtract', 'difference', 'percentage_change']);
@@ -94,164 +95,106 @@ export default function CalculationPanel({ workspaceId, metrics, filterOptions, 
   return (
     <div>
       {analysisState === 'stale' && (
-        <div style={{
-          border: '1px solid #d29922',
-          borderRadius: 6,
-          padding: '8px 12px',
-          backgroundColor: '#2d2200',
-          color: '#d29922',
-          fontSize: 13,
-          marginBottom: 16,
-        }}>
+        <Banner variant="warning">
           ⚠️ Analysis is stale — re-run analysis before calculating.
-        </div>
+        </Banner>
       )}
 
       {analysisState === 'none' && (
-        <div style={{
-          border: '1px solid #6e7681',
-          borderRadius: 6,
-          padding: '8px 12px',
-          color: 'var(--color-muted)',
-          fontSize: 13,
-          marginBottom: 16,
-        }}>
+        <Banner variant="info">
           ℹ️ Run analysis first to enable calculations.
-        </div>
+        </Banner>
       )}
 
       {metrics.length === 0 && analysisState === 'current' && (
-        <div style={{
-          border: '1px solid #6e7681',
-          borderRadius: 6,
-          padding: '8px 12px',
-          color: 'var(--color-muted)',
-          fontSize: 13,
-          marginBottom: 16,
-        }}>
+        <Banner variant="info">
           ℹ️ No metrics detected in the workbook data.
-        </div>
+        </Banner>
       )}
 
       {/* Controls */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
-        <div>
-          <label style={labelStyle}>Metric</label>
-          <select
-            style={selectStyle}
-            value={metric}
-            onChange={e => setMetric(e.target.value)}
-            disabled={disabled}
-          >
-            {metrics.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
+        <Select
+          label="Metric"
+          value={metric}
+          onChange={setMetric}
+          options={metrics.map(m => ({ value: m, label: m }))}
+          disabled={disabled}
+        />
 
-        <div>
-          <label style={labelStyle}>Operation</label>
-          <select
-            style={selectStyle}
-            value={operation}
-            onChange={e => setOperation(e.target.value)}
-            disabled={disabled}
-          >
-            {OPERATIONS.map(op => <option key={op} value={op}>{op}</option>)}
-          </select>
-        </div>
+        <Select
+          label="Operation"
+          value={operation}
+          onChange={setOperation}
+          options={OPERATIONS.map(op => ({ value: op, label: op }))}
+          disabled={disabled}
+        />
 
-        <div>
-          <label style={labelStyle}>Group By</label>
-          <select
-            style={selectStyle}
-            value={groupBy}
-            onChange={e => setGroupBy(e.target.value)}
-            disabled={disabled}
-          >
-            <option value="">None</option>
-            {GROUP_BY_OPTIONS.filter(Boolean).map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          label="Group By"
+          value={groupBy}
+          onChange={setGroupBy}
+          options={GROUP_BY_OPTIONS.filter(Boolean).map(g => ({ value: g, label: g }))}
+          disabled={disabled}
+          placeholder="None"
+        />
 
         {/* Comparison controls */}
         {isComparison && (
           <>
-            <div>
-              <label style={labelStyle}>Compare By</label>
-              <select
-                style={selectStyle}
-                value={compareBy}
-                onChange={e => { setCompareBy(e.target.value); setBaseline(''); setTarget(''); }}
-                disabled={disabled}
-              >
-                {COMPARE_BY_FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Baseline</label>
-              <select
-                style={selectStyle}
-                value={baseline}
-                onChange={e => setBaseline(e.target.value)}
-                disabled={disabled}
-              >
-                <option value="">Select…</option>
-                {compareByValues.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Target</label>
-              <select
-                style={selectStyle}
-                value={target}
-                onChange={e => setTarget(e.target.value)}
-                disabled={disabled}
-              >
-                <option value="">Select…</option>
-                {compareByValues.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
+            <Select
+              label="Compare By"
+              value={compareBy}
+              onChange={(v) => { setCompareBy(v); setBaseline(''); setTarget(''); }}
+              options={COMPARE_BY_FIELDS.map(f => ({ value: f, label: f }))}
+              disabled={disabled}
+            />
+            <Select
+              label="Baseline"
+              value={baseline}
+              onChange={setBaseline}
+              options={compareByValues.map(v => ({ value: v, label: v }))}
+              disabled={disabled}
+              placeholder="Select…"
+            />
+            <Select
+              label="Target"
+              value={target}
+              onChange={setTarget}
+              options={compareByValues.map(v => ({ value: v, label: v }))}
+              disabled={disabled}
+              placeholder="Select…"
+            />
           </>
         )}
 
         {/* Filter dropdowns */}
         {FILTER_FIELDS.map(field => {
-          const options = filterOptions[field] ?? [];
-          if (options.length === 0) return null;
+          const opts = filterOptions[field] ?? [];
+          if (opts.length === 0) return null;
           return (
-            <div key={field}>
-              <label style={labelStyle}>{field}</label>
-              <select
-                style={selectStyle}
-                value={filters[field] ?? ''}
-                onChange={e => setFilters(prev => ({ ...prev, [field]: e.target.value }))}
-                disabled={disabled}
-              >
-                <option value="">All</option>
-                {options.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
+            <Select
+              key={field}
+              label={field}
+              value={filters[field] ?? ''}
+              onChange={(v) => setFilters(prev => ({ ...prev, [field]: v }))}
+              options={opts.map(v => ({ value: v, label: v }))}
+              disabled={disabled}
+              placeholder="All"
+            />
           );
         })}
 
-        <button
+        <Button
+          variant="primary"
           onClick={handleRun}
           disabled={disabled || isPending}
-          style={{
-            backgroundColor: disabled || isPending ? 'var(--color-btn-disabled)' : '#238636',
-            color: '#fff',
-            border: '1px solid var(--color-border)',
-            borderRadius: 6,
-            padding: '8px 16px',
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: disabled || isPending ? 'not-allowed' : 'pointer',
-            alignSelf: 'flex-end',
-          }}
+          loading={isPending}
+          icon={isPending ? undefined : '▶'}
+          style={{ alignSelf: 'flex-end' }}
         >
-          {isPending ? '⏳ Calculating...' : '▶ Run Calculation'}
-        </button>
+          {isPending ? 'Calculating...' : 'Run Calculation'}
+        </Button>
       </div>
 
       {/* Error */}

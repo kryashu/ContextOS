@@ -1,5 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { formatRelativeTime } from '@/lib/utils';
+import { Badge, EmptyState } from '@contextos/ui';
 
 import WorkspaceSummary from '@/components/WorkspaceSummary';
 import SourceInventory from '@/components/SourceInventory';
@@ -22,16 +24,6 @@ const PROVIDER_COLORS: Record<string, string> = {
   ollama: '#3fb950',
   openai: '#79c0ff',
 };
-
-function formatRelativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 function readJSON(filePath: string): unknown | null {
   if (!existsSync(filePath)) return null;
@@ -77,19 +69,7 @@ export default function DemoWorkspacePage() {
         <div>
           <h1 style={{ margin: 0, fontSize: 24 }}>
             📁 checkout-system
-            <span style={{
-              marginLeft: 10,
-              fontSize: 12,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 4,
-              backgroundColor: providerColor,
-              color: '#fff',
-              verticalAlign: 'middle',
-              textTransform: 'uppercase',
-            }}>
-              {provider}
-            </span>
+            <Badge color={providerColor}>{provider}</Badge>
           </h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>
             demo-workspaces/checkout-system
@@ -104,16 +84,10 @@ export default function DemoWorkspacePage() {
       </div>
 
       {!hasData && (
-        <div style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          padding: 32,
-          textAlign: 'center',
-          color: 'var(--color-muted)',
-        }}>
-          <p style={{ fontSize: 18, margin: '0 0 8px' }}>No analysis data found.</p>
-          <p style={{ margin: 0 }}>Click &quot;Run Analysis&quot; to process the demo workspace.</p>
-        </div>
+        <EmptyState
+          title="No analysis data found."
+          subtitle='Click "Run Analysis" to process the demo workspace.'
+        />
       )}
 
       {hasData && (

@@ -3,6 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteWorkspaceAction } from '@/app/workspaces/actions';
+import { Button } from '@contextos/ui';
 
 interface Props {
   workspaceId: string;
@@ -35,23 +36,14 @@ export default function DeleteWorkspaceCardButton({ workspaceId, workspaceName }
   }
 
   return (
-    <button
+    <Button
+      variant="icon"
       onClick={handleClick}
       disabled={isPending}
+      loading={isPending}
+      icon={isPending ? undefined : '🗑️'}
       title={`Delete workspace "${workspaceName}"`}
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: isPending ? 'not-allowed' : 'pointer',
-        fontSize: 14,
-        padding: '2px 6px',
-        borderRadius: 4,
-        opacity: isPending ? 0.5 : 1,
-        color: '#f85149',
-        lineHeight: 1,
-      }}
-    >
-      {isPending ? '⏳' : '🗑️'}
-    </button>
+      style={{ fontSize: 14 }}
+    />
   );
 }
