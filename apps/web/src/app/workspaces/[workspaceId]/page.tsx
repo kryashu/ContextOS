@@ -16,6 +16,8 @@ import FileUpload from '@/components/FileUpload';
 import SourceFileList from '@/components/SourceFileList';
 import WorkbookProfileView from '@/components/WorkbookProfileView';
 import CalculationPanel from '@/components/CalculationPanel';
+import WorkspaceContextReport from '@/components/WorkspaceContextReport';
+import SourceProfileTable from '@/components/SourceProfileTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +31,8 @@ interface ManifestCapabilities {
   hasGraph: boolean;
   hasFindings: boolean;
   hasEval: boolean;
+  hasSourceProfiles: boolean;
+  hasWorkspaceContext: boolean;
 }
 
 interface ManifestSourceEntry {
@@ -169,6 +173,15 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
     }
   }
 
+  // Workspace context & source profiles (VS005)
+  const workspaceCtx = hasArtifact('hasWorkspaceContext' as keyof ManifestCapabilities, 'workspace-context.json')
+    ? readJSON(resolve(outputDir, 'workspace-context.json')) as Record<string, unknown> | null
+    : null;
+
+  const sourceProfilesData = hasArtifact('hasSourceProfiles' as keyof ManifestCapabilities, 'source-profiles.json')
+    ? readJSON(resolve(outputDir, 'source-profiles.json')) as Array<Record<string, unknown>> | null
+    : null;
+
   // Extract calculation panel data from observations
   const candidateMetrics = workbookProfile
     ? (workbookProfile['candidateMetrics'] ?? []) as string[]
@@ -305,6 +318,8 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
           gap: 24,
           opacity: analysisState === 'stale' ? 0.7 : 1,
         }}>
+          {workspaceCtx && <WorkspaceContextReport context={workspaceCtx} />}
+          {sourceProfilesData && <SourceProfileTable profiles={sourceProfilesData} />}
           <WorkspaceSummary data={summary} />
           <SourceInventory data={summary} />
           {graph && <EntityTable nodes={graph.nodes ?? []} />}

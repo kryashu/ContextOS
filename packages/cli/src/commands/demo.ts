@@ -2,12 +2,13 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import type { Source, Entity, Relationship, WorkspaceSummary, Finding, Artifact, RelationshipGraph, AnalysisManifest, ManifestCapabilities, ManifestSourceEntry } from '@contextos/types';
+import type { Source, Entity, Relationship, WorkspaceSummary, Finding, Artifact, RelationshipGraph, AnalysisManifest, ManifestCapabilities, ManifestSourceEntry, SourceProfile, WorkspaceContext } from '@contextos/types';
 import { parserRegistry } from '@contextos/parsers';
 import { SourceClassifier } from '@contextos/classifier';
 import { EntityExtractor } from '@contextos/extractor';
 import { RelationshipMapper, DFDGenerator } from '@contextos/generator';
 import { QualityDetector } from '@contextos/quality';
+import { SourceProfiler, WorkspaceContextBuilder } from '@contextos/profiler';
 
 /**
  * DemoCommand orchestrates the full vertical slice demo
@@ -26,6 +27,12 @@ export class DemoCommand {
     console.log('Step 2: Parsing sources...');
     const sources = await this.parseSources(workspace.sources);
     console.log(`✅ Parsed ${sources.length} sources\n`);
+
+    // Step 2.5: Profile sources (VS005)
+    console.log('Step 2.5: Profiling sources...');
+    const profiler = new SourceProfiler();
+    const sourceProfiles = profiler.profileAll(sources);
+    console.log(`✅ Profiled ${sourceProfiles.length} source(s)\n`);
 
     // Partition: structured-data files are analysed via dedicated pipelines
     const STRUCTURED_DATA_TYPES = new Set(['xlsx', 'csv']);
@@ -91,6 +98,12 @@ export class DemoCommand {
     );
     console.log(`✅ Summary created\n`);
 
+    // Step 8.5: Build workspace context (VS005)
+    console.log('Step 8.5: Building workspace context...');
+    const contextBuilder = new WorkspaceContextBuilder();
+    const workspaceContext = contextBuilder.build(workspace.id, sourceProfiles, sources);
+    console.log(`✅ Workspace context built — theme: "${workspaceContext.primaryTheme}"\n`);
+
     // Step 9: Write outputs
     console.log('Step 9: Writing outputs...');
     await this.writeOutputs(workspacePath, {
@@ -98,6 +111,8 @@ export class DemoCommand {
       graph,
       findings,
       dfd,
+      sourceProfiles,
+      workspaceContext,
     });
     await this.writeExcelOutputs(workspacePath, sources);
 
@@ -178,6 +193,8 @@ export class DemoCommand {
     if (fileName.endsWith('.csv')) return 'csv';
     if (fileName.endsWith('.json')) return 'json';
     if (fileName.endsWith('.xlsx')) return 'xlsx';
+    if (fileName.endsWith('.txt')) return 'text';
+    if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) return 'yaml';
     if (fileName.includes('.figma.')) return 'figma';
     if (fileName.includes('.confluence.')) return 'confluence';
     return 'unknown';
@@ -267,6 +284,8 @@ export class DemoCommand {
       graph: RelationshipGraph | null;
       findings: Finding[];
       dfd: Artifact | null;
+      sourceProfiles: SourceProfile[];
+      workspaceContext: WorkspaceContext;
     }
   ): Promise<void> {
     const outputDir = path.join(workspacePath, 'output');
@@ -301,6 +320,20 @@ export class DemoCommand {
         outputs.dfd.content
       );
     }
+
+    // Write source profiles (VS005)
+    await fs.writeFile(
+      path.join(outputDir, 'source-profiles.json'),
+      JSON.stringify(outputs.sourceProfiles, null, 2)
+    );
+    console.log(`  📑 Wrote source-profiles.json (${outputs.sourceProfiles.length} profiles)`);
+
+    // Write workspace context (VS005)
+    await fs.writeFile(
+      path.join(outputDir, 'workspace-context.json'),
+      JSON.stringify(outputs.workspaceContext, null, 2)
+    );
+    console.log(`  🌐 Wrote workspace-context.json`);
   }
 
   private async writeExcelOutputs(
@@ -375,6 +408,8 @@ export class DemoCommand {
       'dfd-level-0.mmd',
       'workbook-profile.json',
       'normalized-observations.json',
+      'source-profiles.json',
+      'workspace-context.json',
     ];
     const existingArtifacts: string[] = [];
     for (const f of artifactFiles) {
@@ -395,6 +430,8 @@ export class DemoCommand {
       hasGraph: existingArtifacts.includes('relationship-graph.json'),
       hasFindings: existingArtifacts.includes('findings.json'),
       hasEval: false,
+      hasSourceProfiles: existingArtifacts.includes('source-profiles.json'),
+      hasWorkspaceContext: existingArtifacts.includes('workspace-context.json'),
     };
 
     const manifest: AnalysisManifest = {

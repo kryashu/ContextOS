@@ -15,6 +15,7 @@ const ClassificationResultSchema = z.object({
     'operations',
     'code',
     'meeting_notes',
+    'structured_data',
     'irrelevant',
     'unknown'
   ]),
@@ -71,8 +72,8 @@ export class SourceClassifier {
     // Structured data: xlsx files are analysed via the Excel pipeline
     if (source.fileType === 'xlsx') {
       return {
-        category: 'irrelevant',
-        relevanceScore: 0.3,
+        category: 'structured_data',
+        relevanceScore: 0.7,
         reasoning: 'Structured data file — analysed via Excel pipeline',
       };
     }
@@ -93,8 +94,8 @@ export class SourceClassifier {
     // Plain CSV without schema indicators — treated as structured data
     if (source.fileType === 'csv') {
       return {
-        category: 'irrelevant',
-        relevanceScore: 0.3,
+        category: 'structured_data',
+        relevanceScore: 0.5,
         reasoning: 'Structured data file — no schema indicators found',
       };
     }

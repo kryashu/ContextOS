@@ -10,6 +10,8 @@ export type SourceType =
   | 'xlsx'
   | 'pdf'
   | 'docx'
+  | 'text'
+  | 'yaml'
   | 'confluence'
   | 'figma'
   | 'unknown';
@@ -58,6 +60,7 @@ export type SourceCategory =
   | 'operations'         // Deployment, monitoring, runbooks
   | 'code'              // Source code, snippets
   | 'meeting_notes'     // Meeting minutes, discussions
+  | 'structured_data'   // Spreadsheets, CSV data, tables
   | 'irrelevant'        // Not relevant to technical understanding
   | 'unknown';          // Not yet classified
 

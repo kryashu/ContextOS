@@ -78,3 +78,17 @@ export type {
   CalculationResultRow,
   CalculationResult,
 } from './calculation.js';
+
+// Source profile types
+export type {
+  SourceKind,
+  SourceProfile,
+} from './source-profile.js';
+
+// Workspace context types
+export type {
+  DetectedCapabilities,
+  RecommendedAction,
+  IrrelevantSource,
+  WorkspaceContext,
+} from './workspace-context.js';

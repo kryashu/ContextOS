@@ -4,6 +4,7 @@ import { MarkdownParser } from './markdown-parser.js';
 import { CSVParser } from './csv-parser.js';
 import { JSONParser } from './json-parser.js';
 import { ExcelParser } from './excel-parser.js';
+import { GenericTextParser } from './generic-text-parser.js';
 
 /**
  * ParserRegistry manages all parsers and routes to the appropriate one
@@ -17,6 +18,7 @@ export class ParserRegistry {
       new CSVParser(),
       new JSONParser(),
       new ExcelParser(),
+      new GenericTextParser(),
     ];
   }
 

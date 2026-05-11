@@ -8,22 +8,25 @@
   },
   "scripts": {
     "build": "tsc",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextos/types": "workspace:*",
-    "@contextos/parsers": "workspace:*",
+    "@contextos/ai": "workspace:*",
     "@contextos/classifier": "workspace:*",
     "@contextos/extractor": "workspace:*",
     "@contextos/generator": "workspace:*",
+    "@contextos/parsers": "workspace:*",
+    "@contextos/profiler": "workspace:*",
     "@contextos/quality": "workspace:*",
-    "@contextos/ai": "workspace:*",
+    "@contextos/types": "workspace:*",
     "dotenv": "^16.4.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.12.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.4.5"
   }
 }
