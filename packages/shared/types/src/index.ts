@@ -66,3 +66,15 @@ export type {
   ManifestSourceEntry,
   ManifestCapabilities,
 } from './manifest.js';
+
+// Calculation types
+export type {
+  NormalizedObservation,
+  CalculationOperation,
+  CalculationFilter,
+  CalculationSort,
+  CalculationRequest,
+  CalculationSourceRef,
+  CalculationResultRow,
+  CalculationResult,
+} from './calculation.js';

@@ -15,6 +15,7 @@ import RunAnalysisButton from '@/components/RunAnalysisButton';
 import FileUpload from '@/components/FileUpload';
 import SourceFileList from '@/components/SourceFileList';
 import WorkbookProfileView from '@/components/WorkbookProfileView';
+import CalculationPanel from '@/components/CalculationPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -168,6 +169,25 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
     }
   }
 
+  // Extract calculation panel data from observations
+  const candidateMetrics = workbookProfile
+    ? (workbookProfile['candidateMetrics'] ?? []) as string[]
+    : [];
+
+  const calcFilterOptions: Record<string, string[]> = {};
+  if (normalizedObs) {
+    for (const field of ['section', 'treatment', 'plantPart', 'variety'] as const) {
+      const values = [...new Set(
+        normalizedObs
+          .map(o => o[field] as string | undefined)
+          .filter((v): v is string => typeof v === 'string' && v.length > 0),
+      )].sort();
+      if (values.length > 0) {
+        calcFilterOptions[field] = values;
+      }
+    }
+  }
+
   const generatedAt = manifest?.generatedAt ?? (summary?.['generatedAt'] as string | undefined);
   const statusColor = STATUS_COLORS[workspace.status] ?? '#6e7681';
 
@@ -306,6 +326,26 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         }}>
           <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📊 Workbook Profile</h2>
           <WorkbookProfileView profile={workbookProfile} observationCount={normalizedObs?.length ?? 0} />
+        </div>
+      )}
+
+      {/* Calculation Engine — when observations are available */}
+      {(analysisState === 'current' || analysisState === 'stale') && normalizedObs && normalizedObs.length > 0 && (
+        <div style={{
+          border: '1px solid #30363d',
+          borderRadius: 8,
+          padding: 20,
+          backgroundColor: '#161b22',
+          marginTop: 24,
+          opacity: analysisState === 'stale' ? 0.7 : 1,
+        }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>🧮 Table Calculations</h2>
+          <CalculationPanel
+            workspaceId={workspace.id}
+            metrics={candidateMetrics}
+            filterOptions={calcFilterOptions}
+            analysisState={analysisState}
+          />
         </div>
       )}
     </div>

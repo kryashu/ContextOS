@@ -26,6 +26,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@contextos/calculator':
+        specifier: workspace:*
+        version: link:../../packages/domains/calculator
       mermaid:
         specifier: ^11.4.0
         version: 11.15.0
@@ -116,6 +119,19 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+
+  packages/domains/calculator:
+    dependencies:
+      '@contextos/types':
+        specifier: workspace:*
+        version: link:../../shared/types
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.5.0
+        version: 1.6.1(@types/node@20.19.40)
 
   packages/domains/classifier:
     dependencies:
