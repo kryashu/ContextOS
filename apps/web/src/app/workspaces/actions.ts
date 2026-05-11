@@ -1,7 +1,7 @@
 'use server';
 
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   createWorkspace as createWs,
@@ -11,7 +11,9 @@ import {
   getOutputDir,
   clearOutputDir,
   updateWorkspace,
+  computeSourceHashes,
 } from '@/lib/workspaces';
+import { TableCalculator } from '@contextos/calculator';
 
 /** Monorepo root — apps/web -> apps -> root */
 const ROOT_DIR = resolve(process.cwd(), '..', '..');
@@ -133,5 +135,79 @@ export async function runWorkspaceAnalysis(
     const msg = err instanceof Error ? err.message : String(err);
     updateWorkspace(workspaceId, { status: 'analysis_failed' });
     return { success: false, message: `Analysis failed: ${msg}` };
+  }
+}
+
+export async function runCalculation(
+  workspaceId: string,
+  request: {
+    metric: string;
+    operation: string;
+    groupBy?: string;
+    filters?: Array<{ field: string; operator: string; value: string | number | string[] }>;
+    sort?: { field: string; direction: string };
+    limit?: number;
+  },
+): Promise<{ success: boolean; result?: unknown; message: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, message: 'Workspace not found.' };
+    }
+
+    const outputDir = getOutputDir(workspaceId);
+
+    // Validate manifest exists and has observations
+    const manifestPath = resolve(outputDir, 'analysis-manifest.json');
+    if (!existsSync(manifestPath)) {
+      return { success: false, message: 'No analysis manifest found. Run analysis first.' };
+    }
+
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+    if (!manifest.capabilities?.hasNormalizedObservations) {
+      return { success: false, message: 'No normalized observations available. Upload an Excel file and run analysis.' };
+    }
+
+    // Validate analysis is current (not stale)
+    const currentHashes = computeSourceHashes(workspaceId);
+    const manifestHashes: Record<string, string> = {};
+    for (const s of manifest.sourceFiles ?? []) {
+      manifestHashes[s.fileName] = s.hash;
+    }
+    const currentKeys = Object.keys(currentHashes).sort();
+    const manifestKeys = Object.keys(manifestHashes).sort();
+    const hashesMatch =
+      currentKeys.length === manifestKeys.length &&
+      currentKeys.every((k: string) => currentHashes[k] === manifestHashes[k]);
+
+    if (!hashesMatch) {
+      return { success: false, message: 'Analysis is stale. Re-run analysis before calculating.' };
+    }
+
+    // Read observations
+    const obsPath = resolve(outputDir, 'normalized-observations.json');
+    if (!existsSync(obsPath)) {
+      return { success: false, message: 'normalized-observations.json not found.' };
+    }
+
+    const observations = JSON.parse(readFileSync(obsPath, 'utf-8'));
+    if (!Array.isArray(observations)) {
+      return { success: false, message: 'Invalid observations data.' };
+    }
+
+    // Run calculation
+    const calculator = new TableCalculator(observations);
+    const result = calculator.calculate(request as Parameters<typeof calculator.calculate>[0]);
+
+    // Persist result
+    writeFileSync(
+      resolve(outputDir, 'calculation-results.json'),
+      JSON.stringify(result, null, 2),
+    );
+
+    return { success: true, result, message: 'Calculation completed.' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Calculation failed: ${msg}` };
   }
 }

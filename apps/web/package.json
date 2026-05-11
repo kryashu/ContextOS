@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@contextos/calculator": "workspace:*",
     "mermaid": "^11.4.0",
     "next": "^14.2.15",
     "react": "^18.3.1",

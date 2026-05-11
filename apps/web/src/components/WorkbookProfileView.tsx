@@ -82,9 +82,21 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
 
       {/* Detected tables detail */}
       {sheets.some(s => (s.detectedTables?.length ?? 0) > 0) && (
-        <div>
-          <h3 style={{ fontSize: 15, margin: '0 0 8px', color: '#e6edf3' }}>Detected Table Blocks</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <details style={{ marginTop: 0 }}>
+          <summary style={{
+            fontSize: 15,
+            margin: '0 0 8px',
+            color: '#e6edf3',
+            cursor: 'pointer',
+            userSelect: 'none',
+            listStyle: 'revert',
+          }}>
+            Detected Table Blocks
+            <span style={{ fontSize: 12, color: '#8b949e', fontWeight: 400, marginLeft: 8 }}>
+              ({sheets.reduce((n, s) => n + (s.detectedTables?.length ?? 0), 0)})
+            </span>
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
             {sheets.flatMap(s =>
               (s.detectedTables ?? []).map((t, i) => (
                 <div key={`${s.name}-${i}`} style={{
@@ -142,7 +154,7 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
               ))
             )}
           </div>
-        </div>
+        </details>
       )}
 
       {/* Candidate metrics */}

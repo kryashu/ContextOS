@@ -486,3 +486,42 @@ describe('Source-type-aware pipeline', () => {
     expect(shouldRenderArtifact(manifest, 'hasWorkbookProfile', resolve(outputDir, 'workbook-profile.json'))).toBe(true);
   });
 });
+
+// ── Calculation engine: cleanup and gating ────────────────────────
+describe('Calculation engine lifecycle', () => {
+  it('calculation-results.json is removed by clearOutputDir (upload/rerun)', () => {
+    const { outputDir } = freshWorkspace('ws_calc_clear');
+    writeFileSync(resolve(outputDir, 'calculation-results.json'), '{}');
+    writeFileSync(resolve(outputDir, 'workspace-summary.json'), '{}');
+    expect(existsSync(resolve(outputDir, 'calculation-results.json'))).toBe(true);
+
+    clearOutputDir(outputDir);
+
+    expect(existsSync(resolve(outputDir, 'calculation-results.json'))).toBe(false);
+    expect(readdirSync(outputDir).length).toBe(0);
+  });
+
+  it('stale analysis state prevents calculation rendering', () => {
+    // When analysis is stale, UI should not enable calculation
+    // This test verifies the state derivation that gates the panel
+    const { sourcesDir, outputDir } = freshWorkspace('ws_calc_stale');
+    writeFileSync(resolve(sourcesDir, 'data.xlsx'), 'changed');
+
+    const oldHash = 'oldhash123';
+    const manifest = writeManifest(outputDir, {
+      sourceFiles: [{ fileName: 'data.xlsx', fileType: 'xlsx', hash: oldHash, size: 5 }],
+      capabilities: {
+        hasExcel: true,
+        hasWorkbookProfile: true,
+        hasNormalizedObservations: true,
+        hasDfd: false,
+        hasGraph: false,
+        hasFindings: false,
+        hasEval: false,
+      },
+    });
+
+    const hashes = computeSourceHashes(sourcesDir);
+    expect(deriveAnalysisState(manifest, hashes, 'analyzed')).toBe('stale');
+  });
+});
