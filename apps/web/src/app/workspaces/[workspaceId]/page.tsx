@@ -14,6 +14,7 @@ import MermaidDiagram from '@/components/MermaidDiagram';
 import RunAnalysisButton from '@/components/RunAnalysisButton';
 import FileUpload from '@/components/FileUpload';
 import SourceFileList from '@/components/SourceFileList';
+import DeleteWorkspaceButton from '@/components/DeleteWorkspaceButton';
 import WorkbookProfileView from '@/components/WorkbookProfileView';
 import CalculationPanel from '@/components/CalculationPanel';
 import WorkspaceContextReport from '@/components/WorkspaceContextReport';
@@ -229,7 +230,7 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
               {workspace.status.replace('_', ' ')}
             </span>
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#8b949e', fontSize: 14 }}>
+          <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>
             {workspace.description || workspace.id}
             {generatedAt && analysisState === 'current' && (
               <span style={{ marginLeft: 12 }}>
@@ -238,7 +239,10 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
             )}
           </p>
         </div>
-        {sourceFiles.length > 0 && <RunAnalysisButton action={runAnalysis} />}
+        <div style={{ display: 'flex', gap: 12 }}>
+          {sourceFiles.length > 0 && <RunAnalysisButton action={runAnalysis} />}
+          <DeleteWorkspaceButton workspaceId={workspace.id} workspaceName={workspace.name} />
+        </div>
       </div>
 
       {/* Analysis State Banner */}
@@ -272,25 +276,25 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
 
       {/* Source Files Section */}
       <div style={{
-        border: '1px solid #30363d',
+        border: '1px solid var(--color-border)',
         borderRadius: 8,
         padding: 20,
-        backgroundColor: '#161b22',
+        backgroundColor: 'var(--color-surface)',
         marginBottom: 24,
       }}>
         <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📄 Source Files ({sourceFiles.length})</h2>
         <FileUpload workspaceId={workspace.id} />
-        <SourceFileList files={sourceFiles} />
+        <SourceFileList files={sourceFiles} workspaceId={workspace.id} allowDelete />
       </div>
 
       {/* No analysis yet */}
       {analysisState === 'none' && sourceFiles.length > 0 && (
         <div style={{
-          border: '1px solid #30363d',
+          border: '1px solid var(--color-border)',
           borderRadius: 8,
           padding: 32,
           textAlign: 'center',
-          color: '#8b949e',
+          color: 'var(--color-muted)',
         }}>
           <p style={{ fontSize: 18, margin: '0 0 8px' }}>No analysis results yet.</p>
           <p style={{ margin: 0 }}>Click &quot;Run Analysis&quot; to process the uploaded files.</p>
@@ -299,11 +303,11 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
 
       {analysisState === 'none' && sourceFiles.length === 0 && (
         <div style={{
-          border: '1px solid #30363d',
+          border: '1px solid var(--color-border)',
           borderRadius: 8,
           padding: 32,
           textAlign: 'center',
-          color: '#8b949e',
+          color: 'var(--color-muted)',
         }}>
           <p style={{ fontSize: 18, margin: '0 0 8px' }}>Upload source files to begin.</p>
           <p style={{ margin: 0 }}>Supported formats: .md, .csv, .json, .txt, .yaml, .yml, .xlsx</p>
@@ -332,10 +336,10 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
       {/* Workbook Intelligence — only when manifest confirms it */}
       {(analysisState === 'current' || analysisState === 'stale') && workbookProfile && (
         <div style={{
-          border: '1px solid #30363d',
+          border: '1px solid var(--color-border)',
           borderRadius: 8,
           padding: 20,
-          backgroundColor: '#161b22',
+          backgroundColor: 'var(--color-surface)',
           marginTop: summary ? 24 : 0,
           opacity: analysisState === 'stale' ? 0.7 : 1,
         }}>
@@ -347,10 +351,10 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
       {/* Calculation Engine — when observations are available */}
       {(analysisState === 'current' || analysisState === 'stale') && normalizedObs && normalizedObs.length > 0 && (
         <div style={{
-          border: '1px solid #30363d',
+          border: '1px solid var(--color-border)',
           borderRadius: 8,
           padding: 20,
-          backgroundColor: '#161b22',
+          backgroundColor: 'var(--color-surface)',
           marginTop: 24,
           opacity: analysisState === 'stale' ? 0.7 : 1,
         }}>
