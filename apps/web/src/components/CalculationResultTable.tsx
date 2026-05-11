@@ -1,8 +1,8 @@
 const thStyle = {
   textAlign: 'left' as const,
   padding: '8px 12px',
-  borderBottom: '2px solid #30363d',
-  color: '#8b949e',
+  borderBottom: '2px solid var(--color-border)',
+  color: 'var(--color-muted)',
   fontSize: 12,
   fontWeight: 600,
   textTransform: 'uppercase' as const,
@@ -10,9 +10,9 @@ const thStyle = {
 
 const tdStyle = {
   padding: '8px 12px',
-  borderBottom: '1px solid #21262d',
+  borderBottom: '1px solid var(--color-border-subtle)',
   fontSize: 14,
-  color: '#e6edf3',
+  color: 'var(--color-fg)',
 };
 
 interface ResultRow {
@@ -50,7 +50,7 @@ export default function CalculationResultTable({ rows, hasGroup, operation, metr
       )}
 
       {rows.length === 0 ? (
-        <p style={{ color: '#8b949e', margin: 0 }}>No results to display.</p>
+        <p style={{ color: 'var(--color-muted)', margin: 0 }}>No results to display.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -64,13 +64,13 @@ export default function CalculationResultTable({ rows, hasGroup, operation, metr
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#0d1117' : '#161b22' }}>
+                <tr key={i} style={{ backgroundColor: i % 2 === 0 ? 'var(--color-bg)' : 'var(--color-surface)' }}>
                   {hasGroup && <td style={tdStyle}>{row.group ?? '—'}</td>}
                   <td style={{ ...tdStyle, fontVariantNumeric: 'tabular-nums' }}>
                     {typeof row.value === 'number' ? Number(row.value.toFixed(4)) : row.value}
                   </td>
                   <td style={tdStyle}>{row.count}</td>
-                  <td style={{ ...tdStyle, fontSize: 12, color: '#8b949e' }}>
+                  <td style={{ ...tdStyle, fontSize: 12, color: 'var(--color-muted)' }}>
                     {row.sourceRefs && row.sourceRefs.length > 0
                       ? `${row.sourceRefs.length} cell(s)`
                       : '—'}

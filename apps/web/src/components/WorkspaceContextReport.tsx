@@ -66,7 +66,7 @@ export default function WorkspaceContextReport({
           </h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {kindEntries.map(([kind, count]) => (
-              <span key={kind} style={badge('#30363d')}>
+              <span key={kind} style={badge('#6e7681')}>
                 {kind}: {count}
               </span>
             ))}

@@ -91,7 +91,7 @@ export default function DemoWorkspacePage() {
               {provider}
             </span>
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#8b949e', fontSize: 14 }}>
+          <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>
             demo-workspaces/checkout-system
             {generatedAt && (
               <span style={{ marginLeft: 12 }}>
@@ -105,11 +105,11 @@ export default function DemoWorkspacePage() {
 
       {!hasData && (
         <div style={{
-          border: '1px solid #30363d',
+          border: '1px solid var(--color-border)',
           borderRadius: 8,
           padding: 32,
           textAlign: 'center',
-          color: '#8b949e',
+          color: 'var(--color-muted)',
         }}>
           <p style={{ fontSize: 18, margin: '0 0 8px' }}>No analysis data found.</p>
           <p style={{ margin: 0 }}>Click &quot;Run Analysis&quot; to process the demo workspace.</p>

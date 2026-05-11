@@ -1,8 +1,8 @@
 const card = {
-  border: '1px solid #30363d',
+  border: '1px solid var(--color-border)',
   borderRadius: 8,
   padding: 16,
-  backgroundColor: '#161b22',
+  backgroundColor: 'var(--color-surface)',
 } as const;
 
 const statBox = {
@@ -27,7 +27,7 @@ export default function WorkspaceSummary({ data }: { data: Record<string, unknow
         {stats.map(s => (
           <div key={s.label} style={statBox}>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{String(s.value)}</div>
-            <div style={{ color: '#8b949e', fontSize: 13 }}>{s.icon} {s.label}</div>
+            <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>{s.icon} {s.label}</div>
           </div>
         ))}
       </div>

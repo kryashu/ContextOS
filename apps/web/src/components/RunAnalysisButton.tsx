@@ -28,9 +28,9 @@ export default function RunAnalysisButton({ action }: Props) {
         onClick={handleClick}
         disabled={isPending}
         style={{
-          backgroundColor: isPending ? '#21262d' : '#238636',
+          backgroundColor: isPending ? 'var(--color-btn-disabled)' : '#238636',
           color: '#fff',
-          border: '1px solid #30363d',
+          border: '1px solid var(--color-border)',
           borderRadius: 6,
           padding: '8px 16px',
           fontSize: 14,

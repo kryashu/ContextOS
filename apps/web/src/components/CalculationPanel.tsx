@@ -11,9 +11,9 @@ const GROUP_BY_OPTIONS = ['', 'treatment', 'plantPart', 'variety', 'section', 's
 const FILTER_FIELDS = ['section', 'treatment', 'plantPart', 'variety'] as const;
 
 const selectStyle = {
-  backgroundColor: '#0d1117',
-  color: '#e6edf3',
-  border: '1px solid #30363d',
+  backgroundColor: 'var(--color-input-bg)',
+  color: 'var(--color-fg)',
+  border: '1px solid var(--color-border)',
   borderRadius: 6,
   padding: '6px 10px',
   fontSize: 14,
@@ -22,7 +22,7 @@ const selectStyle = {
 
 const labelStyle = {
   fontSize: 12,
-  color: '#8b949e',
+  color: 'var(--color-muted)',
   marginBottom: 4,
   display: 'block' as const,
 } as const;
@@ -112,7 +112,7 @@ export default function CalculationPanel({ workspaceId, metrics, filterOptions, 
           border: '1px solid #6e7681',
           borderRadius: 6,
           padding: '8px 12px',
-          color: '#8b949e',
+          color: 'var(--color-muted)',
           fontSize: 13,
           marginBottom: 16,
         }}>
@@ -125,7 +125,7 @@ export default function CalculationPanel({ workspaceId, metrics, filterOptions, 
           border: '1px solid #6e7681',
           borderRadius: 6,
           padding: '8px 12px',
-          color: '#8b949e',
+          color: 'var(--color-muted)',
           fontSize: 13,
           marginBottom: 16,
         }}>
@@ -239,9 +239,9 @@ export default function CalculationPanel({ workspaceId, metrics, filterOptions, 
           onClick={handleRun}
           disabled={disabled || isPending}
           style={{
-            backgroundColor: disabled || isPending ? '#21262d' : '#238636',
+            backgroundColor: disabled || isPending ? 'var(--color-btn-disabled)' : '#238636',
             color: '#fff',
-            border: '1px solid #30363d',
+            border: '1px solid var(--color-border)',
             borderRadius: 6,
             padding: '8px 16px',
             fontSize: 14,

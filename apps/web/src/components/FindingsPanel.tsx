@@ -1,8 +1,8 @@
 const card = {
-  border: '1px solid #30363d',
+  border: '1px solid var(--color-border)',
   borderRadius: 8,
   padding: 16,
-  backgroundColor: '#161b22',
+  backgroundColor: 'var(--color-surface)',
 } as const;
 
 const severityColors: Record<string, string> = {
@@ -28,18 +28,18 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
     <section style={card}>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>⚠️ Findings ({findings.length})</h2>
       {findings.length === 0 && (
-        <p style={{ color: '#8b949e', margin: 0 }}>No quality issues detected.</p>
+        <p style={{ color: 'var(--color-muted)', margin: 0 }}>No quality issues detected.</p>
       )}
       {findings.map((f, i) => (
         <div key={f.id ?? i} style={{
-          border: `1px solid ${severityColors[f.severity ?? 'info'] ?? '#30363d'}`,
+          border: `1px solid ${severityColors[f.severity ?? 'info'] ?? 'var(--color-border)'}`,
           borderRadius: 6,
           padding: 12,
           marginBottom: i < findings.length - 1 ? 8 : 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{
-              backgroundColor: severityColors[f.severity ?? 'info'] ?? '#30363d',
+              backgroundColor: severityColors[f.severity ?? 'info'] ?? 'var(--color-border)',
               color: '#fff',
               padding: '1px 8px',
               borderRadius: 4,
@@ -51,14 +51,14 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
             </span>
             <span style={{ fontWeight: 500, fontSize: 14 }}>{f.title}</span>
           </div>
-          {f.description && <p style={{ margin: '4px 0', fontSize: 13, color: '#8b949e' }}>{f.description}</p>}
+          {f.description && <p style={{ margin: '4px 0', fontSize: 13, color: 'var(--color-muted)' }}>{f.description}</p>}
           {f.recommendation && (
             <p style={{ margin: '4px 0', fontSize: 13 }}>
               💡 <em>{f.recommendation}</em>
             </p>
           )}
           {f.affectedSources && f.affectedSources.length > 0 && (
-            <div style={{ fontSize: 12, color: '#8b949e', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 4 }}>
               📎 {f.affectedSources.map(s => s.fileName).join(', ')}
             </div>
           )}

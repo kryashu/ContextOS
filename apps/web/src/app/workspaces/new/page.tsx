@@ -44,10 +44,10 @@ export default function NewWorkspacePage() {
               width: '100%',
               padding: '8px 12px',
               fontSize: 14,
-              backgroundColor: '#0d1117',
-              border: '1px solid #30363d',
+              backgroundColor: 'var(--color-input-bg)',
+              border: '1px solid var(--color-border)',
               borderRadius: 6,
-              color: '#e6edf3',
+              color: 'var(--color-fg)',
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -68,10 +68,10 @@ export default function NewWorkspacePage() {
               width: '100%',
               padding: '8px 12px',
               fontSize: 14,
-              backgroundColor: '#0d1117',
-              border: '1px solid #30363d',
+              backgroundColor: 'var(--color-input-bg)',
+              border: '1px solid var(--color-border)',
               borderRadius: 6,
-              color: '#e6edf3',
+              color: 'var(--color-fg)',
               outline: 'none',
               resize: 'vertical',
               boxSizing: 'border-box',
@@ -88,9 +88,9 @@ export default function NewWorkspacePage() {
             type="submit"
             disabled={isPending}
             style={{
-              backgroundColor: isPending ? '#21262d' : '#238636',
+              backgroundColor: isPending ? 'var(--color-btn-disabled)' : '#238636',
               color: '#fff',
-              border: '1px solid #30363d',
+              border: '1px solid var(--color-border)',
               borderRadius: 6,
               padding: '8px 16px',
               fontSize: 14,
@@ -104,9 +104,9 @@ export default function NewWorkspacePage() {
             type="button"
             onClick={() => router.push('/workspaces')}
             style={{
-              backgroundColor: '#21262d',
-              color: '#e6edf3',
-              border: '1px solid #30363d',
+              backgroundColor: 'var(--color-border-subtle)',
+              color: 'var(--color-fg)',
+              border: '1px solid var(--color-border)',
               borderRadius: 6,
               padding: '8px 16px',
               fontSize: 14,

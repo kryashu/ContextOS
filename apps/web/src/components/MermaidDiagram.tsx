@@ -3,10 +3,10 @@
 import { useEffect, useRef, useId } from 'react';
 
 const card = {
-  border: '1px solid #30363d',
+  border: '1px solid var(--color-border)',
   borderRadius: 8,
   padding: 16,
-  backgroundColor: '#161b22',
+  backgroundColor: 'var(--color-surface)',
 } as const;
 
 export default function MermaidDiagram({ content }: { content: string }) {
@@ -47,16 +47,16 @@ export default function MermaidDiagram({ content }: { content: string }) {
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>🗺️ Data Flow Diagram (Level 0)</h2>
       <div
         ref={containerRef}
-        style={{ overflow: 'auto', padding: 8, backgroundColor: '#0d1117', borderRadius: 6 }}
+        style={{ overflow: 'auto', padding: 8, backgroundColor: 'var(--color-bg)', borderRadius: 6 }}
       >
-        <p style={{ color: '#8b949e' }}>Loading diagram...</p>
+        <p style={{ color: 'var(--color-muted)' }}>Loading diagram...</p>
       </div>
       <details style={{ marginTop: 8 }}>
-        <summary style={{ cursor: 'pointer', fontSize: 12, color: '#8b949e' }}>Raw Mermaid source</summary>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--color-muted)' }}>Raw Mermaid source</summary>
         <pre style={{
           whiteSpace: 'pre-wrap',
           fontSize: 12,
-          backgroundColor: '#0d1117',
+          backgroundColor: 'var(--color-bg)',
           padding: 12,
           borderRadius: 4,
           marginTop: 4,

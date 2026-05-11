@@ -38,9 +38,9 @@ export default function FileUpload({ workspaceId }: Props) {
       <label
         style={{
           display: 'inline-block',
-          backgroundColor: isPending ? '#21262d' : '#21262d',
-          color: isPending ? '#8b949e' : '#e6edf3',
-          border: '1px solid #30363d',
+          backgroundColor: isPending ? 'var(--color-btn-disabled)' : 'var(--color-border-subtle)',
+          color: isPending ? 'var(--color-muted)' : 'var(--color-fg)',
+          border: '1px solid var(--color-border)',
           borderRadius: 6,
           padding: '8px 16px',
           fontSize: 14,
@@ -58,7 +58,7 @@ export default function FileUpload({ workspaceId }: Props) {
           style={{ display: 'none' }}
         />
       </label>
-      <span style={{ marginLeft: 12, fontSize: 12, color: '#8b949e' }}>
+      <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--color-muted)' }}>
         .md, .csv, .json, .txt, .yaml, .yml — max 5MB each
       </span>
       {result && (

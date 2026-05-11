@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { listWorkspaces } from '@/lib/workspaces';
+import DeleteWorkspaceCardButton from '@/components/DeleteWorkspaceCardButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export default function WorkspacesPage() {
             style={{
               backgroundColor: '#238636',
               color: '#fff',
-              border: '1px solid #30363d',
+              border: '1px solid var(--color-border)',
               borderRadius: 6,
               padding: '8px 16px',
               fontSize: 14,
@@ -52,14 +53,14 @@ export default function WorkspacesPage() {
           style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div style={{
-            border: '1px solid #30363d',
+            border: '1px solid var(--color-border)',
             borderRadius: 8,
             padding: 20,
-            backgroundColor: '#161b22',
+            backgroundColor: 'var(--color-surface)',
             cursor: 'pointer',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <h3 style={{ margin: '0 0 4px', fontSize: 16, color: '#e6edf3' }}>📁 checkout-system</h3>
+              <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--color-fg)' }}>📁 checkout-system</h3>
               <span style={{
                 fontSize: 11,
                 fontWeight: 600,
@@ -72,10 +73,10 @@ export default function WorkspacesPage() {
                 demo
               </span>
             </div>
-            <p style={{ margin: '0 0 12px', color: '#8b949e', fontSize: 13 }}>
+            <p style={{ margin: '0 0 12px', color: 'var(--color-muted)', fontSize: 13 }}>
               Built-in demo workspace with sample files
             </p>
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#8b949e' }}>
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--color-muted)' }}>
               <span>📄 4 sources</span>
             </div>
           </div>
@@ -89,30 +90,33 @@ export default function WorkspacesPage() {
             style={{ textDecoration: 'none', color: 'inherit' }}
           >
             <div style={{
-              border: '1px solid #30363d',
+              border: '1px solid var(--color-border)',
               borderRadius: 8,
               padding: 20,
-              backgroundColor: '#161b22',
+              backgroundColor: 'var(--color-surface)',
               cursor: 'pointer',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: 16, color: '#e6edf3' }}>📁 {ws.name}</h3>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  backgroundColor: STATUS_COLORS[ws.status] ?? '#6e7681',
-                  color: '#fff',
-                  textTransform: 'uppercase',
-                }}>
-                  {ws.status.replace('_', ' ')}
-                </span>
+                <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--color-fg)' }}>📁 {ws.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    backgroundColor: STATUS_COLORS[ws.status] ?? '#6e7681',
+                    color: '#fff',
+                    textTransform: 'uppercase',
+                  }}>
+                    {ws.status.replace('_', ' ')}
+                  </span>
+                  <DeleteWorkspaceCardButton workspaceId={ws.id} workspaceName={ws.name} />
+                </div>
               </div>
               {ws.description && (
-                <p style={{ margin: '0 0 12px', color: '#8b949e', fontSize: 13 }}>{ws.description}</p>
+                <p style={{ margin: '0 0 12px', color: 'var(--color-muted)', fontSize: 13 }}>{ws.description}</p>
               )}
-              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#8b949e' }}>
+              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--color-muted)' }}>
                 <span>📄 {ws.sourceCount} sources</span>
                 <span>🕐 {formatRelativeTime(ws.updatedAt)}</span>
               </div>
@@ -122,7 +126,7 @@ export default function WorkspacesPage() {
       </div>
 
       {workspaces.length === 0 && (
-        <p style={{ color: '#8b949e', textAlign: 'center', marginTop: 32 }}>
+        <p style={{ color: 'var(--color-muted)', textAlign: 'center', marginTop: 32 }}>
           No custom workspaces yet. Create one or explore the demo workspace above.
         </p>
       )}

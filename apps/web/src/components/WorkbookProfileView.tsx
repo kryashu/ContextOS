@@ -36,20 +36,20 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
           { label: 'Metrics', value: candidateMetrics.length, icon: '📏' },
         ].map(s => (
           <div key={s.label} style={{
-            backgroundColor: '#0d1117',
-            border: '1px solid #30363d',
+            backgroundColor: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
             borderRadius: 6,
             padding: '12px 16px',
             minWidth: 100,
           }}>
-            <div style={{ fontSize: 12, color: '#8b949e' }}>{s.icon} {s.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: '#e6edf3' }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{s.icon} {s.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-fg)' }}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {fileName && (
-        <p style={{ fontSize: 13, color: '#8b949e', margin: '0 0 16px' }}>
+        <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '0 0 16px' }}>
           Source: {fileName}
         </p>
       )}
@@ -57,19 +57,19 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
       {/* Sheet list */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, marginBottom: 16 }}>
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8b949e', fontWeight: 600 }}>Sheet</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8b949e', fontWeight: 600 }}>Range</th>
-            <th style={{ textAlign: 'right', padding: '8px 12px', color: '#8b949e', fontWeight: 600 }}>Rows</th>
-            <th style={{ textAlign: 'right', padding: '8px 12px', color: '#8b949e', fontWeight: 600 }}>Sections</th>
-            <th style={{ textAlign: 'right', padding: '8px 12px', color: '#8b949e', fontWeight: 600 }}>Tables</th>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--color-muted)', fontWeight: 600 }}>Sheet</th>
+            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--color-muted)', fontWeight: 600 }}>Range</th>
+            <th style={{ textAlign: 'right', padding: '8px 12px', color: 'var(--color-muted)', fontWeight: 600 }}>Rows</th>
+            <th style={{ textAlign: 'right', padding: '8px 12px', color: 'var(--color-muted)', fontWeight: 600 }}>Sections</th>
+            <th style={{ textAlign: 'right', padding: '8px 12px', color: 'var(--color-muted)', fontWeight: 600 }}>Tables</th>
           </tr>
         </thead>
         <tbody>
           {sheets.map(s => (
-            <tr key={s.name} style={{ borderBottom: '1px solid #21262d' }}>
+            <tr key={s.name} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
               <td style={{ padding: '8px 12px', fontWeight: 500 }}>{s.name}</td>
-              <td style={{ padding: '8px 12px', color: '#8b949e', fontFamily: 'monospace', fontSize: 12 }}>
+              <td style={{ padding: '8px 12px', color: 'var(--color-muted)', fontFamily: 'monospace', fontSize: 12 }}>
                 {s.usedRange || '—'}
               </td>
               <td style={{ padding: '8px 12px', textAlign: 'right' }}>{s.rowCount ?? 0}</td>
@@ -86,13 +86,13 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
           <summary style={{
             fontSize: 15,
             margin: '0 0 8px',
-            color: '#e6edf3',
+            color: 'var(--color-fg)',
             cursor: 'pointer',
             userSelect: 'none',
             listStyle: 'revert',
           }}>
             Detected Table Blocks
-            <span style={{ fontSize: 12, color: '#8b949e', fontWeight: 400, marginLeft: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--color-muted)', fontWeight: 400, marginLeft: 8 }}>
               ({sheets.reduce((n, s) => n + (s.detectedTables?.length ?? 0), 0)})
             </span>
           </summary>
@@ -100,8 +100,8 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
             {sheets.flatMap(s =>
               (s.detectedTables ?? []).map((t, i) => (
                 <div key={`${s.name}-${i}`} style={{
-                  backgroundColor: '#0d1117',
-                  border: '1px solid #30363d',
+                  backgroundColor: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: 6,
                   padding: '8px 12px',
                   fontSize: 13,
@@ -111,7 +111,7 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
                   alignItems: 'center',
                 }}>
                   <span style={{ fontWeight: 600 }}>{s.name}</span>
-                  <span style={{ fontFamily: 'monospace', color: '#8b949e' }}>{t.range}</span>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--color-muted)' }}>{t.range}</span>
                   {t.sectionHeader && (
                     <span style={{
                       backgroundColor: '#1f6feb33',
@@ -146,7 +146,7 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
                     </span>
                   )}
                   {(t.treatments?.length ?? 0) > 0 && (
-                    <span style={{ color: '#8b949e', fontSize: 11 }}>
+                    <span style={{ color: 'var(--color-muted)', fontSize: 11 }}>
                       {t.treatments!.join(' · ')}
                     </span>
                   )}
@@ -160,16 +160,16 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
       {/* Candidate metrics */}
       {candidateMetrics.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <h3 style={{ fontSize: 15, margin: '0 0 8px', color: '#e6edf3' }}>Candidate Metrics</h3>
+          <h3 style={{ fontSize: 15, margin: '0 0 8px', color: 'var(--color-fg)' }}>Candidate Metrics</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {candidateMetrics.map(m => (
               <span key={m} style={{
-                backgroundColor: '#21262d',
-                border: '1px solid #30363d',
+                backgroundColor: 'var(--color-border-subtle)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 12,
                 padding: '4px 10px',
                 fontSize: 12,
-                color: '#e6edf3',
+                color: 'var(--color-fg)',
               }}>
                 {m}
               </span>

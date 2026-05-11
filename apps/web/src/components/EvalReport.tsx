@@ -1,22 +1,22 @@
 const card = {
-  border: '1px solid #30363d',
+  border: '1px solid var(--color-border)',
   borderRadius: 8,
   padding: 16,
-  backgroundColor: '#161b22',
+  backgroundColor: 'var(--color-surface)',
 } as const;
 
 const th = {
   textAlign: 'left' as const,
   padding: '6px 12px',
-  borderBottom: '1px solid #30363d',
-  color: '#8b949e',
+  borderBottom: '1px solid var(--color-border)',
+  color: 'var(--color-muted)',
   fontSize: 12,
   textTransform: 'uppercase' as const,
 };
 
 const td = {
   padding: '6px 12px',
-  borderBottom: '1px solid #21262d',
+  borderBottom: '1px solid var(--color-border-subtle)',
   fontSize: 14,
 };
 
@@ -66,7 +66,7 @@ export default function EvalReport({ report, isStale }: { report: Report | Recor
         </div>
       )}
       {r.evaluatedAt && (
-        <p style={{ fontSize: 12, color: '#8b949e', margin: '0 0 12px' }}>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '0 0 12px' }}>
           Evaluated: {new Date(r.evaluatedAt).toLocaleString()}
         </p>
       )}
