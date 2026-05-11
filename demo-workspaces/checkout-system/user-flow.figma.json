@@ -1,0 +1,104 @@
+{
+  "type": "figma_flow",
+  "name": "Checkout User Flow",
+  "version": "1.0",
+  "lastModified": "2026-05-01T10:30:00Z",
+  "frames": [
+    {
+      "id": "frame_1",
+      "name": "Shopping Cart",
+      "type": "screen",
+      "elements": [
+        {
+          "type": "button",
+          "label": "Proceed to Checkout",
+          "action": "navigate_to_frame_2"
+        },
+        {
+          "type": "list",
+          "items": ["Product 1", "Product 2", "Product 3"]
+        },
+        {
+          "type": "text",
+          "content": "Total: $125.00"
+        }
+      ]
+    },
+    {
+      "id": "frame_2",
+      "name": "Shipping Address",
+      "type": "screen",
+      "elements": [
+        {
+          "type": "form",
+          "fields": [
+            {"name": "street", "label": "Street Address", "required": true},
+            {"name": "city", "label": "City", "required": true},
+            {"name": "state", "label": "State", "required": true},
+            {"name": "zipCode", "label": "ZIP Code", "required": true}
+          ]
+        },
+        {
+          "type": "button",
+          "label": "Continue to Payment",
+          "action": "navigate_to_frame_3"
+        }
+      ]
+    },
+    {
+      "id": "frame_3",
+      "name": "Payment Information",
+      "type": "screen",
+      "elements": [
+        {
+          "type": "stripe_element",
+          "component": "CardElement"
+        },
+        {
+          "type": "checkbox",
+          "label": "Save payment method for future purchases"
+        },
+        {
+          "type": "button",
+          "label": "Complete Purchase",
+          "action": "submit_payment"
+        }
+      ]
+    },
+    {
+      "id": "frame_4",
+      "name": "Order Confirmation",
+      "type": "screen",
+      "elements": [
+        {
+          "type": "text",
+          "content": "Thank you for your order!"
+        },
+        {
+          "type": "text",
+          "content": "Order #{{orderId}}"
+        },
+        {
+          "type": "button",
+          "label": "View Order Details",
+          "action": "navigate_to_order_details"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {"from": "frame_1", "to": "frame_2", "trigger": "button_click"},
+    {"from": "frame_2", "to": "frame_3", "trigger": "form_submit"},
+    {"from": "frame_3", "to": "frame_4", "trigger": "payment_success"}
+  ],
+  "annotations": [
+    {
+      "frame": "frame_3",
+      "note": "Payment processing handled by Stripe API"
+    },
+    {
+      "frame": "frame_4",
+      "note": "Confirmation email sent via SendGrid"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+table_name,column_name,data_type,nullable,description
+users,id,uuid,false,Primary key
+users,email,varchar(255),false,User email address
+users,password_hash,varchar(255),false,Bcrypt hashed password
+users,created_at,timestamp,false,Account creation timestamp
+users,updated_at,timestamp,false,Last update timestamp
+orders,id,uuid,false,Primary key
+orders,user_id,uuid,false,Foreign key to users table
+orders,status,varchar(50),false,Order status (pending/confirmed/shipped/delivered/cancelled)
+orders,total_amount,decimal(10,2),false,Total order amount
+orders,created_at,timestamp,false,Order creation timestamp
+orders,updated_at,timestamp,false,Last update timestamp
+order_items,id,uuid,false,Primary key
+order_items,order_id,uuid,false,Foreign key to orders table
+order_items,product_id,uuid,false,Foreign key to products table
+order_items,quantity,integer,false,Item quantity
+order_items,price,decimal(10,2),false,Item price at time of order
+products,id,uuid,false,Primary key
+products,name,varchar(255),false,Product name
+products,description,text,true,Product description
+products,price,decimal(10,2),false,Current price
+products,stock_quantity,integer,false,Available stock
+products,created_at,timestamp,false,Product creation timestamp
+products,updated_at,timestamp,false,Last update timestamp
+inventory_reservations,id,uuid,false,Primary key
+inventory_reservations,product_id,uuid,false,Foreign key to products table
+inventory_reservations,quantity,integer,false,Reserved quantity
+inventory_reservations,checkout_id,uuid,false,Associated checkout session
+inventory_reservations,expires_at,timestamp,false,Reservation expiry time
+inventory_reservations,created_at,timestamp,false,Reservation creation timestamp
+checkout_sessions,id,uuid,false,Primary key
+checkout_sessions,user_id,uuid,false,Foreign key to users table
+checkout_sessions,status,varchar(50),false,Session status (initiated/processing/completed/failed/cancelled)
+checkout_sessions,cart_data,jsonb,false,Cart contents snapshot
+checkout_sessions,payment_intent_id,varchar(255),true,Stripe payment intent ID
+checkout_sessions,expires_at,timestamp,false,Session expiry time
+checkout_sessions,created_at,timestamp,false,Session creation timestamp
+checkout_sessions,updated_at,timestamp,false,Last update timestamp

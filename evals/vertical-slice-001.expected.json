@@ -1,0 +1,169 @@
+{
+  "description": "Expected outputs for Vertical Slice 001 evaluation - Checkout System demo workspace",
+  "version": "1.0.0",
+  "workspacePath": "demo-workspaces/checkout-system",
+  "generatedAt": "2026-05-11T00:00:00.000Z",
+  "expectedOutputs": {
+    "workspaceSummary": {
+      "totalSources": 9,
+      "sourcesByType": {
+        "markdown": 6,
+        "csv": 1,
+        "confluence": 1,
+        "figma": 1
+      },
+      "sourcesByCategory": {
+        "api_documentation": 3,
+        "database_schema": 1,
+        "operations": 2,
+        "user_flow": 2,
+        "requirements": 1
+      },
+      "minEntities": 8,
+      "minRelationships": 6,
+      "expectedEntities": [
+        {
+          "type": "actor",
+          "name": "Customer",
+          "requiredIn": ["api-spec.md", "user-flow.figma.json"]
+        },
+        {
+          "type": "system",
+          "name": "Checkout API",
+          "requiredIn": ["api-spec.md"]
+        },
+        {
+          "type": "system",
+          "name": "Payment Service",
+          "requiredIn": ["api-spec.md"]
+        },
+        {
+          "type": "data_store",
+          "name": "Order Database",
+          "requiredIn": ["database-schema.csv"]
+        },
+        {
+          "type": "external_integration",
+          "name": "Stripe",
+          "requiredIn": ["api-spec.md", "requirements.confluence.json"]
+        },
+        {
+          "type": "endpoint",
+          "name": "POST /checkout",
+          "requiredIn": ["api-spec.md"]
+        },
+        {
+          "type": "business_entity",
+          "name": "Order",
+          "requiredIn": ["database-schema.csv"]
+        },
+        {
+          "type": "business_entity",
+          "name": "Payment",
+          "requiredIn": ["database-schema.csv"]
+        }
+      ],
+      "expectedRelationships": [
+        {
+          "type": "uses",
+          "sourceEntity": "Customer",
+          "targetEntity": "Checkout API"
+        },
+        {
+          "type": "calls",
+          "sourceEntity": "Checkout API",
+          "targetEntity": "Payment Service"
+        },
+        {
+          "type": "integrates_with",
+          "sourceEntity": "Payment Service",
+          "targetEntity": "Stripe"
+        },
+        {
+          "type": "writes_to",
+          "sourceEntity": "Checkout API",
+          "targetEntity": "Order Database"
+        },
+        {
+          "type": "stores_in",
+          "sourceEntity": "Order",
+          "targetEntity": "Order Database"
+        },
+        {
+          "type": "manages",
+          "sourceEntity": "Checkout API",
+          "targetEntity": "Order"
+        }
+      ]
+    },
+    "qualityFindings": {
+      "minFindings": 2,
+      "expectedFindings": [
+        {
+          "type": "duplicate",
+          "severity": "medium",
+          "affectedSources": ["api-spec.md", "duplicate-api-spec.md"],
+          "description": "Duplicate API specification detected"
+        },
+        {
+          "type": "outdated",
+          "severity": "low",
+          "affectedSources": ["outdated-flow.md"],
+          "description": "Document marked as outdated"
+        }
+      ]
+    },
+    "relationshipGraph": {
+      "minNodes": 8,
+      "minEdges": 6,
+      "requiredNodeTypes": ["actor", "system", "data_store", "external_integration"],
+      "requiredEdgeTypes": ["uses", "calls", "integrates_with", "writes_to"]
+    },
+    "dfdDiagram": {
+      "format": "mermaid",
+      "requiredElements": {
+        "actors": ["Customer"],
+        "processes": ["Checkout API", "Payment Service"],
+        "dataStores": ["Order Database"],
+        "externalSystems": ["Stripe"]
+      },
+      "minFlows": 4,
+      "mustContain": [
+        "Customer",
+        "Checkout",
+        "Payment",
+        "Database",
+        "Stripe"
+      ]
+    },
+    "sourceReferences": {
+      "minCoverage": 0.8,
+      "description": "At least 80% of entities should reference their source files"
+    },
+    "schemaValidation": {
+      "mustValidate": [
+        "workspace-summary.json",
+        "relationship-graph.json",
+        "findings.json"
+      ]
+    }
+  },
+  "scoringWeights": {
+    "entityRecall": 0.25,
+    "relationshipRecall": 0.25,
+    "findingDetection": 0.15,
+    "irrelevantDetection": 0.10,
+    "mermaidValidity": 0.10,
+    "sourceReferences": 0.10,
+    "schemaValidity": 0.05
+  },
+  "passingThreshold": 0.70,
+  "notes": [
+    "Entity and relationship counts are minimums - extracting more is acceptable",
+    "Entity names may vary slightly (e.g., 'Checkout Service' vs 'Checkout API')",
+    "Relationship detection should capture primary data flows",
+    "Quality findings should detect both duplicate and outdated sources",
+    "DFD must be valid Mermaid syntax and show main system components",
+    "Source references ensure traceability back to original documents"
+  ]
+}

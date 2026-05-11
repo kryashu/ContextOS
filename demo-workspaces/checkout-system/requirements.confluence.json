@@ -1,0 +1,101 @@
+{
+  "type": "confluence_page",
+  "title": "Checkout System - Business Requirements",
+  "space": "ECOMMERCE",
+  "version": 3,
+  "lastModified": "2026-04-15T14:20:00Z",
+  "author": "Product Team",
+  "content": {
+    "sections": [
+      {
+        "heading": "Objective",
+        "body": "Enable customers to complete purchases securely and efficiently with minimal friction. Target checkout completion time: under 2 minutes."
+      },
+      {
+        "heading": "Key Requirements",
+        "subsections": [
+          {
+            "title": "FR-001: Cart Management",
+            "description": "Users must be able to add, remove, and update items in their cart. Cart state must persist for 30 days for logged-in users.",
+            "priority": "High"
+          },
+          {
+            "title": "FR-002: Inventory Reservation",
+            "description": "When checkout is initiated, inventory must be reserved for 15 minutes to prevent overselling.",
+            "priority": "Critical"
+          },
+          {
+            "title": "FR-003: Payment Processing",
+            "description": "Support credit/debit card payments via Stripe. Must handle 3D Secure authentication.",
+            "priority": "Critical"
+          },
+          {
+            "title": "FR-004: Order Confirmation",
+            "description": "Send email confirmation within 5 seconds of successful payment. Include order details and estimated delivery.",
+            "priority": "High"
+          },
+          {
+            "title": "FR-005: Guest Checkout",
+            "description": "Allow users to checkout without creating an account. Capture email for order tracking.",
+            "priority": "Medium"
+          }
+        ]
+      },
+      {
+        "heading": "Non-Functional Requirements",
+        "subsections": [
+          {
+            "title": "NFR-001: Performance",
+            "description": "Checkout initiation response time: < 500ms. Payment processing: < 3 seconds.",
+            "metric": "p95 latency"
+          },
+          {
+            "title": "NFR-002: Availability",
+            "description": "System must maintain 99.9% uptime during business hours.",
+            "metric": "Monthly uptime percentage"
+          },
+          {
+            "title": "NFR-003: Security",
+            "description": "PCI-DSS Level 1 compliance. All payment data handled by Stripe (no storage).",
+            "compliance": "PCI-DSS"
+          },
+          {
+            "title": "NFR-004: Scalability",
+            "description": "Support 1000 concurrent checkout sessions during peak hours.",
+            "metric": "Concurrent users"
+          }
+        ]
+      },
+      {
+        "heading": "Business Rules",
+        "items": [
+          "Minimum order value: $10.00",
+          "Maximum order value: $10,000.00",
+          "Inventory reservation expires after 15 minutes",
+          "Failed payments allow 3 retry attempts",
+          "Cart abandonment email sent after 24 hours"
+        ]
+      },
+      {
+        "heading": "Success Metrics",
+        "kpis": [
+          {
+            "name": "Checkout Conversion Rate",
+            "target": "75%",
+            "current": "68%"
+          },
+          {
+            "name": "Average Checkout Time",
+            "target": "< 2 minutes",
+            "current": "2.5 minutes"
+          },
+          {
+            "name": "Payment Failure Rate",
+            "target": "< 2%",
+            "current": "3.1%"
+          }
+        ]
+      }
+    ]
+  }
+}
