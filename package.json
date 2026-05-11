@@ -1,0 +1,28 @@
+{
+  "name": "contextos",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "contextos": "pnpm --filter @contextos/cli start",
+    "contextos:ai:check": "pnpm --filter @contextos/cli start ai:check",
+    "contextos:eval": "pnpm --filter @contextos/cli start eval",
+    "contextos:config:print": "pnpm --filter @contextos/cli start config:print"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "prettier": "^3.2.5",
+    "turbo": "^1.13.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
