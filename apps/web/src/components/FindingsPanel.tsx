@@ -1,9 +1,4 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 16,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card, Badge } from '@contextos/ui';
 
 const severityColors: Record<string, string> = {
   critical: '#f85149',
@@ -25,7 +20,7 @@ interface Finding {
 
 export default function FindingsPanel({ findings }: { findings: Finding[] }) {
   return (
-    <section style={card}>
+    <Card>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>⚠️ Findings ({findings.length})</h2>
       {findings.length === 0 && (
         <p style={{ color: 'var(--color-muted)', margin: 0 }}>No quality issues detected.</p>
@@ -38,17 +33,9 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
           marginBottom: i < findings.length - 1 ? 8 : 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{
-              backgroundColor: severityColors[f.severity ?? 'info'] ?? 'var(--color-border)',
-              color: '#fff',
-              padding: '1px 8px',
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-            }}>
+            <Badge color={severityColors[f.severity ?? 'info'] ?? 'var(--color-border)'}>
               {f.severity}
-            </span>
+            </Badge>
             <span style={{ fontWeight: 500, fontSize: 14 }}>{f.title}</span>
           </div>
           {f.description && <p style={{ margin: '4px 0', fontSize: 13, color: 'var(--color-muted)' }}>{f.description}</p>}
@@ -64,6 +51,6 @@ export default function FindingsPanel({ findings }: { findings: Finding[] }) {
           )}
         </div>
       ))}
-    </section>
+    </Card>
   );
 }

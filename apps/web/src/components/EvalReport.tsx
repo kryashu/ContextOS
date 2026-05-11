@@ -1,9 +1,4 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 16,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card, Banner } from '@contextos/ui';
 
 const th = {
   textAlign: 'left' as const,
@@ -41,7 +36,7 @@ export default function EvalReport({ report, isStale }: { report: Report | Recor
   const thresholdPct = ((r.passingThreshold ?? 0.7) * 100).toFixed(0);
 
   return (
-    <section style={card}>
+    <Card>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>
         🧪 Eval Report
         <span style={{
@@ -53,17 +48,9 @@ export default function EvalReport({ report, isStale }: { report: Report | Recor
         </span>
       </h2>
       {isStale && (
-        <div style={{
-          backgroundColor: '#2d1b00',
-          border: '1px solid #d29922',
-          borderRadius: 6,
-          padding: '8px 12px',
-          marginBottom: 12,
-          fontSize: 13,
-          color: '#d29922',
-        }}>
+        <Banner variant="warning">
           ⚠️ Eval report is older than the latest analysis — re-run to update.
-        </div>
+        </Banner>
       )}
       {r.evaluatedAt && (
         <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '0 0 12px' }}>
@@ -91,6 +78,6 @@ export default function EvalReport({ report, isStale }: { report: Report | Recor
           })}
         </tbody>
       </table>
-    </section>
+    </Card>
   );
 }

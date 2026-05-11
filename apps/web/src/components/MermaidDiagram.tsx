@@ -2,12 +2,7 @@
 
 import { useEffect, useRef, useId } from 'react';
 
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 16,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card } from '@contextos/ui';
 
 export default function MermaidDiagram({ content }: { content: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,7 +38,7 @@ export default function MermaidDiagram({ content }: { content: string }) {
   }, [content, uniqueId]);
 
   return (
-    <section style={card}>
+    <Card>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>🗺️ Data Flow Diagram (Level 0)</h2>
       <div
         ref={containerRef}
@@ -65,6 +60,6 @@ export default function MermaidDiagram({ content }: { content: string }) {
           {content}
         </pre>
       </details>
-    </section>
+    </Card>
   );
 }

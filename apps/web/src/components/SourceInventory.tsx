@@ -1,16 +1,11 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 16,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card } from '@contextos/ui';
 
 export default function SourceInventory({ data }: { data: Record<string, unknown> }) {
   const byType = (data['sourcesByType'] ?? {}) as Record<string, number>;
   const byCategory = (data['sourcesByCategory'] ?? {}) as Record<string, number>;
 
   return (
-    <section style={card}>
+    <Card>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>📁 Source Inventory</h2>
       <div style={{ display: 'flex', gap: 32 }}>
         <div>
@@ -32,6 +27,6 @@ export default function SourceInventory({ data }: { data: Record<string, unknown
           ))}
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

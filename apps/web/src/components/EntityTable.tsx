@@ -1,9 +1,4 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 16,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card, SourceRefs } from '@contextos/ui';
 
 const th = {
   textAlign: 'left' as const,
@@ -20,33 +15,12 @@ const td = {
   fontSize: 14,
 };
 
-interface SourceRef {
-  sourceId?: string;
-  fileName?: string;
-  sourceType?: string;
-}
-
 interface Node {
   id?: string;
   type?: string;
   label?: string;
-  sources?: SourceRef[];
+  sources?: Array<{ fileName?: string }>;
   metadata?: Record<string, unknown>;
-}
-
-function SourceRefs({ refs }: { refs?: SourceRef[] }) {
-  if (!refs || refs.length === 0) return <span style={{ color: 'var(--color-muted)' }}>—</span>;
-  const unique = [...new Set(refs.map(r => r.fileName))];
-  return (
-    <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>
-      {unique.map((f, i) => (
-        <span key={i}>
-          {i > 0 && ', '}
-          <span style={{ fontFamily: 'monospace' }}>{f}</span>
-        </span>
-      ))}
-    </span>
-  );
 }
 
 const typeBadge: Record<string, string> = {
@@ -62,7 +36,7 @@ const typeBadge: Record<string, string> = {
 
 export default function EntityTable({ nodes }: { nodes: Node[] }) {
   return (
-    <section style={card}>
+    <Card>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>🔷 Entities ({nodes.length})</h2>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -86,6 +60,6 @@ export default function EntityTable({ nodes }: { nodes: Node[] }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Card>
   );
 }

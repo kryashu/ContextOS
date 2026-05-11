@@ -1,9 +1,4 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 20,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card, Badge } from '@contextos/ui';
 
 const kindColors: Record<string, string> = {
   document: '#58a6ff',
@@ -35,7 +30,7 @@ export default function SourceProfileTable({
   if (items.length === 0) return null;
 
   return (
-    <section style={card}>
+    <Card style={{ padding: 20 }}>
       <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>
         📑 Source Profiles ({items.length})
       </h2>
@@ -68,19 +63,9 @@ export default function SourceProfileTable({
                     {p.fileName ?? '—'}
                   </td>
                   <td style={{ padding: '8px 10px' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        backgroundColor: kindColors[kind] ?? '#6e7681',
-                        color: '#fff',
-                      }}
-                    >
+                    <Badge color={kindColors[kind] ?? '#6e7681'}>
                       {kind}
-                    </span>
+                    </Badge>
                   </td>
                   <td
                     style={{
@@ -108,6 +93,6 @@ export default function SourceProfileTable({
           </tbody>
         </table>
       </div>
-    </section>
+    </Card>
   );
 }

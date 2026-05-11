@@ -1,3 +1,5 @@
+import { StatCard } from '@contextos/ui';
+
 interface SheetInfo {
   name?: string;
   usedRange?: string;
@@ -35,16 +37,7 @@ export default function WorkbookProfileView({ profile, observationCount }: Props
           { label: 'Observations', value: observationCount, icon: '🔬' },
           { label: 'Metrics', value: candidateMetrics.length, icon: '📏' },
         ].map(s => (
-          <div key={s.label} style={{
-            backgroundColor: 'var(--color-bg)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 6,
-            padding: '12px 16px',
-            minWidth: 100,
-          }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{s.icon} {s.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-fg)' }}>{s.value}</div>
-          </div>
+          <StatCard key={s.label} icon={s.icon} label={s.label} value={s.value} />
         ))}
       </div>
 

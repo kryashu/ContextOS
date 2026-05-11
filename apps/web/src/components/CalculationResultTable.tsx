@@ -1,3 +1,5 @@
+import { Banner } from '@contextos/ui';
+
 const thStyle = {
   textAlign: 'left' as const,
   padding: '8px 12px',
@@ -34,19 +36,11 @@ export default function CalculationResultTable({ rows, hasGroup, operation, metr
   return (
     <div>
       {warnings.length > 0 && (
-        <div style={{
-          border: '1px solid #d29922',
-          borderRadius: 6,
-          padding: '8px 12px',
-          backgroundColor: '#2d2200',
-          color: '#d29922',
-          fontSize: 13,
-          marginBottom: 12,
-        }}>
+        <Banner variant="warning">
           {warnings.map((w, i) => (
             <div key={i}>⚠️ {w}</div>
           ))}
-        </div>
+        </Banner>
       )}
 
       {rows.length === 0 ? (

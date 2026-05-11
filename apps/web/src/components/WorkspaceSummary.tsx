@@ -1,9 +1,4 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 16,
-  backgroundColor: 'var(--color-surface)',
-} as const;
+import { Card } from '@contextos/ui';
 
 const statBox = {
   textAlign: 'center' as const,
@@ -21,7 +16,7 @@ export default function WorkspaceSummary({ data }: { data: Record<string, unknow
   ];
 
   return (
-    <section style={card}>
+    <Card>
       <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>📊 Workspace Summary</h2>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         {stats.map(s => (
@@ -31,6 +26,6 @@ export default function WorkspaceSummary({ data }: { data: Record<string, unknow
           </div>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }

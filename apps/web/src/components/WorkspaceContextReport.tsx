@@ -1,20 +1,4 @@
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: 20,
-  backgroundColor: 'var(--color-surface)',
-} as const;
-
-const badge = (color: string) =>
-  ({
-    display: 'inline-block',
-    fontSize: 11,
-    fontWeight: 600,
-    padding: '2px 8px',
-    borderRadius: 4,
-    backgroundColor: color,
-    color: '#fff',
-  }) as const;
+import { Card, Badge } from '@contextos/ui';
 
 interface WorkspaceContextData {
   primaryTheme?: string;
@@ -43,7 +27,7 @@ export default function WorkspaceContextReport({
     : [];
 
   return (
-    <section style={card}>
+    <Card style={{ padding: 20 }}>
       <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>
         🌐 Workspace Understanding
       </h2>
@@ -66,9 +50,9 @@ export default function WorkspaceContextReport({
           </h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {kindEntries.map(([kind, count]) => (
-              <span key={kind} style={badge('#6e7681')}>
+              <Badge key={kind} color="#6e7681">
                 {kind}: {count}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -82,9 +66,9 @@ export default function WorkspaceContextReport({
           </h3>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {ctx.keyTopics.slice(0, 12).map((t) => (
-              <span key={t} style={badge('#1f6feb')}>
+              <Badge key={t} color="#1f6feb">
                 {t}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -98,9 +82,9 @@ export default function WorkspaceContextReport({
           </h3>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {ctx.keyEntities.slice(0, 12).map((e) => (
-              <span key={e} style={badge('#8b5cf6')}>
+              <Badge key={e} color="#8b5cf6">
                 {e}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -114,9 +98,9 @@ export default function WorkspaceContextReport({
           </h3>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {capEntries.map(([cap]) => (
-              <span key={cap} style={badge('#238636')}>
+              <Badge key={cap} color="#238636">
                 ✓ {cap.replace(/^(has|can)/, '').replace(/([A-Z])/g, ' $1').trim()}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -169,6 +153,6 @@ export default function WorkspaceContextReport({
           </ul>
         </div>
       )}
-    </section>
+    </Card>
   );
 }
