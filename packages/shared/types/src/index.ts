@@ -77,8 +77,6 @@ export type {
   CalculationSourceRef,
   CalculationResultRow,
   CalculationResult,
-  ChartType,
-  ChartSpec,
 } from './calculation.js';
 
 // Source profile types
@@ -94,3 +92,11 @@ export type {
   IrrelevantSource,
   WorkspaceContext,
 } from './workspace-context.js';
+
+// Workspace Q&A types
+export type {
+  WorkspaceQuestionIntent,
+  WorkspaceAnswerArtifactType,
+  WorkspaceAnswerSourceRef,
+  WorkspaceAnswer,
+} from './workspace-qa.js';
