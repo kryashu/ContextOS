@@ -332,4 +332,69 @@ describe('LocalRetriever', () => {
     expect(results.length).toBe(1);
     expect(results[0]!.score).toBeGreaterThan(0);
   });
+
+  // --- Extracted-text search tests (VS009) ---
+
+  it('searchSourceFiles finds matches in output/extracted-text/', () => {
+    const extractedDir = resolve(outputDir, 'extracted-text');
+    mkdirSync(extractedDir, { recursive: true });
+    writeFileSync(resolve(extractedDir, 'report.pdf.txt'), 'quarterly revenue analysis shows growth');
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const results = retriever.searchSourceFiles('quarterly revenue');
+
+    expect(results.length).toBe(1);
+    expect(results[0]!.fileName).toBe('report.pdf'); // .txt suffix stripped
+    expect(results[0]!.snippet).toContain('quarterly revenue');
+  });
+
+  it('searchSourceFiles returns source file over extracted-text for same name', () => {
+    // Source file takes precedence when both exist
+    writeFileSync(resolve(sourcesDir, 'notes.md'), 'budget planning meeting notes');
+    const extractedDir = resolve(outputDir, 'extracted-text');
+    mkdirSync(extractedDir, { recursive: true });
+    writeFileSync(resolve(extractedDir, 'notes.md.txt'), 'budget planning from pdf version');
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const results = retriever.searchSourceFiles('budget planning');
+
+    // Should not have duplicates
+    const fileNames = results.map(r => r.fileName);
+    const unique = new Set(fileNames);
+    expect(unique.size).toBe(fileNames.length);
+    expect(results[0]!.fileName).toBe('notes.md');
+  });
+
+  it('extractRelatedSnippet reads from extracted-text for PDF/DOCX files', () => {
+    const extractedDir = resolve(outputDir, 'extracted-text');
+    mkdirSync(extractedDir, { recursive: true });
+    // Content must NOT contain the search keywords to avoid becoming a direct match
+    writeFileSync(resolve(extractedDir, 'spec.pdf.txt'), 'This document covers the authorization and identity verification process for the system');
+
+    // Create a direct match source and a relationship to spec.pdf
+    writeFileSync(resolve(sourcesDir, 'auth.md'), 'login authentication module overview');
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        relationships: [
+          {
+            sourceA: 'auth.md',
+            sourceB: 'spec.pdf',
+            type: 'shared_topic',
+            confidence: 0.9,
+            evidence: ['authentication'],
+          },
+        ],
+      }),
+    );
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const results = retriever.searchWithRelationships('login authentication');
+
+    // Should include spec.pdf as a related file via extracted text (header snippet, high confidence)
+    const related = results.filter(r => r.isRelated);
+    expect(related.length).toBeGreaterThanOrEqual(1);
+    expect(related.some(r => r.fileName === 'spec.pdf')).toBe(true);
+  });
 });

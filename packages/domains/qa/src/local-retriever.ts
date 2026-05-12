@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import type { WorkspaceContext, SourceProfile, SourceRelationship, SourceRelationshipMap } from '@contextos/types';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.json', '.yaml', '.yml', '.csv']);
+const EXTRACTED_TEXT_SUBDIR = 'extracted-text';
 const SNIPPET_RADIUS = 250; // chars around match
 const MAX_FILE_SIZE = 512 * 1024; // skip files larger than 512KB for search
 const MAX_TOTAL_SNIPPET_CHARS = 3000; // cap total snippet bytes sent to LLM
@@ -54,10 +55,9 @@ export class LocalRetriever {
   /**
    * Search text-like source files for keyword matches.
    * Returns snippets (~500 chars) around each match.
+   * Also searches output/extracted-text/ for PDF/DOCX extracted text.
    */
   searchSourceFiles(query: string, maxResults = 5): RetrievedSnippet[] {
-    if (!existsSync(this.sourcesDir)) return [];
-
     const keywords = query
       .toLowerCase()
       .split(/\s+/)
@@ -67,18 +67,54 @@ export class LocalRetriever {
 
     const results: Array<RetrievedSnippet & { score: number }> = [];
 
+    // Search original source files
+    this.searchDirectory(this.sourcesDir, keywords, results, false);
+
+    // Search extracted-text artifacts (PDF/DOCX extracted content)
+    const extractedDir = resolve(this.outputDir, EXTRACTED_TEXT_SUBDIR);
+    this.searchDirectory(extractedDir, keywords, results, true);
+
+    const sorted = results
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxResults);
+
+    // Cap total snippet chars to avoid oversized LLM context
+    let totalChars = 0;
+    const capped: RetrievedSnippet[] = [];
+    for (const s of sorted) {
+      if (totalChars + s.snippet.length > MAX_TOTAL_SNIPPET_CHARS) break;
+      totalChars += s.snippet.length;
+      capped.push({ fileName: s.fileName, snippet: s.snippet, score: s.score });
+    }
+    return capped;
+  }
+
+  /**
+   * Search a directory for keyword matches and append results.
+   * For extracted-text dir, strips the .txt suffix to get the original fileName.
+   */
+  private searchDirectory(
+    dir: string,
+    keywords: string[],
+    results: Array<RetrievedSnippet & { score: number }>,
+    isExtracted: boolean,
+  ): void {
+    if (!existsSync(dir)) return;
+
     let files: string[];
     try {
-      files = readdirSync(this.sourcesDir).filter(f => !f.startsWith('.'));
+      files = readdirSync(dir).filter(f => !f.startsWith('.'));
     } catch {
-      return [];
+      return;
     }
 
-    for (const fileName of files) {
-      const ext = '.' + fileName.split('.').pop()?.toLowerCase();
-      if (!TEXT_EXTENSIONS.has(ext)) continue;
+    for (const rawFileName of files) {
+      if (!isExtracted) {
+        const ext = '.' + rawFileName.split('.').pop()?.toLowerCase();
+        if (!TEXT_EXTENSIONS.has(ext)) continue;
+      }
 
-      const filePath = resolve(this.sourcesDir, fileName);
+      const filePath = resolve(dir, rawFileName);
       let content: string;
       try {
         const stat = statSync(filePath);
@@ -107,23 +143,17 @@ export class LocalRetriever {
         if (start > 0) snippet = '…' + snippet;
         if (end < content.length) snippet = snippet + '…';
 
-        results.push({ fileName, snippet, score });
+        // For extracted-text, strip .txt suffix to get original fileName
+        const fileName = isExtracted
+          ? rawFileName.replace(/\.txt$/, '')
+          : rawFileName;
+
+        // Avoid duplicate if same fileName already found from sources dir
+        if (!results.some(r => r.fileName === fileName)) {
+          results.push({ fileName, snippet, score });
+        }
       }
     }
-
-    const sorted = results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, maxResults);
-
-    // Cap total snippet chars to avoid oversized LLM context
-    let totalChars = 0;
-    const capped: RetrievedSnippet[] = [];
-    for (const s of sorted) {
-      if (totalChars + s.snippet.length > MAX_TOTAL_SNIPPET_CHARS) break;
-      totalChars += s.snippet.length;
-      capped.push({ fileName: s.fileName, snippet: s.snippet, score: s.score });
-    }
-    return capped;
   }
 
   /**
@@ -226,18 +256,21 @@ export class LocalRetriever {
     confidence: number,
   ): string | null {
     const ext = '.' + fileName.split('.').pop()?.toLowerCase();
-    if (!TEXT_EXTENSIONS.has(ext)) return null;
 
-    const filePath = resolve(this.sourcesDir, fileName);
-    let content: string;
-    try {
-      if (!existsSync(filePath)) return null;
-      const stat = statSync(filePath);
-      if (stat.size > MAX_FILE_SIZE) return null;
-      content = readFileSync(filePath, 'utf-8');
-    } catch {
-      return null;
+    // Try source file directly (text formats)
+    let content: string | null = null;
+    if (TEXT_EXTENSIONS.has(ext)) {
+      content = this.readFileContent(resolve(this.sourcesDir, fileName));
     }
+
+    // Fall back to extracted-text artifact (PDF/DOCX)
+    if (content === null) {
+      content = this.readFileContent(
+        resolve(this.outputDir, EXTRACTED_TEXT_SUBDIR, `${fileName}.txt`),
+      );
+    }
+
+    if (content === null) return null;
 
     // Try keyword match first
     const lower = content.toLowerCase();
@@ -266,6 +299,17 @@ export class LocalRetriever {
     }
 
     return null;
+  }
+
+  private readFileContent(filePath: string): string | null {
+    try {
+      if (!existsSync(filePath)) return null;
+      const stat = statSync(filePath);
+      if (stat.size > MAX_FILE_SIZE) return null;
+      return readFileSync(filePath, 'utf-8');
+    } catch {
+      return null;
+    }
   }
 
   private readJSON<T>(fileName: string): T | null {
