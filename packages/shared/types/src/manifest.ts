@@ -21,6 +21,7 @@ export interface ManifestCapabilities {
   hasEval: boolean;
   hasSourceProfiles: boolean;
   hasWorkspaceContext: boolean;
+  hasSourceRelationships: boolean;
 }
 
 export interface AnalysisManifest {

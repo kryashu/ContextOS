@@ -4,18 +4,20 @@
  */
 
 export type WorkspaceQuestionIntent =
-  | 'about'            // What is this workspace about?
-  | 'irrelevant_files' // Which files are irrelevant?
-  | 'capabilities'     // What calculations / actions are possible?
-  | 'sheet_query'      // Which sheets are related to X?
-  | 'document_fact'    // Factual question answered from document content
-  | 'unknown';         // Could not classify
+  | 'about'                // What is this workspace about?
+  | 'irrelevant_files'     // Which files are irrelevant?
+  | 'capabilities'         // What calculations / actions are possible?
+  | 'source_relationships' // Which files are related / isolated?
+  | 'sheet_query'          // Which sheets are related to X?
+  | 'document_fact'        // Factual question answered from document content
+  | 'unknown';             // Could not classify
 
 export type WorkspaceAnswerArtifactType =
   | 'workspace-context'
   | 'source-profiles'
   | 'workbook-profile'
   | 'normalized-observations'
+  | 'workspace-relationships'
   | 'source-file';
 
 export interface WorkspaceAnswerSourceRef {

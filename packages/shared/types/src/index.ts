@@ -93,6 +93,13 @@ export type {
   WorkspaceContext,
 } from './workspace-context.js';
 
+// Source relationship types
+export type {
+  SourceRelationshipType,
+  SourceRelationship,
+  SourceRelationshipMap,
+} from './source-relationship.js';
+
 // Workspace Q&A types
 export type {
   WorkspaceQuestionIntent,
