@@ -252,6 +252,34 @@ export class WorkspaceAnswerComposer {
       { fileName: 'workbook-profile.json', artifactType: 'workbook-profile' },
     ];
 
+    // Collect workbook fileNames for relationship lookup
+    const workbookFileNames: string[] = [];
+    const workbooks = (wb as Record<string, unknown>)['workbooks'];
+    if (Array.isArray(workbooks)) {
+      for (const w of workbooks) {
+        const name = (w as Record<string, unknown>)['fileName'] ?? (w as Record<string, unknown>)['name'];
+        if (typeof name === 'string') workbookFileNames.push(name);
+      }
+    }
+
+    // Gather related supporting documents
+    const SHEET_RELATED_TYPES = new Set(['table_document_support', 'shared_topic', 'shared_entity']);
+    const relatedDocNames: string[] = [];
+    for (const wbFile of workbookFileNames) {
+      const rels = this.retriever.getRelatedSources(wbFile);
+      for (const rel of rels) {
+        if (!SHEET_RELATED_TYPES.has(rel.type)) continue;
+        const other = rel.sourceA === wbFile ? rel.sourceB : rel.sourceA;
+        if (other && !relatedDocNames.includes(other)) {
+          relatedDocNames.push(other);
+          refs.push({ fileName: other, artifactType: 'source-file' as const });
+        }
+      }
+    }
+
+    // Build answer text
+    let answerText = '';
+
     // Surface sheet names + summary
     const sheets = (wb as Record<string, unknown>)['sheets'];
     if (Array.isArray(sheets)) {
@@ -259,26 +287,26 @@ export class WorkspaceAnswerComposer {
         .map((s: Record<string, unknown>) => s['name'] ?? s['sheetName'])
         .filter(Boolean) as string[];
       if (names.length > 0) {
-        return {
-          question,
-          intent: 'sheet_query',
-          answer: `The workbook contains ${names.length} sheet(s): ${names.join(', ')}.`,
-          sourceRefs: refs,
-          confidence: 0.9,
-          timestamp: now(),
-          warnings: [],
-        };
+        answerText = `The workbook contains ${names.length} sheet(s): ${names.join(', ')}.`;
       }
     }
 
-    // Fallback: summarise keys
-    const keys = Object.keys(wb);
+    if (!answerText) {
+      // Fallback: summarise keys
+      const keys = Object.keys(wb);
+      answerText = `Workbook profile available with sections: ${keys.join(', ')}.`;
+    }
+
+    if (relatedDocNames.length > 0) {
+      answerText += `\nRelated supporting documents: ${relatedDocNames.join(', ')}.`;
+    }
+
     return {
       question,
       intent: 'sheet_query',
-      answer: `Workbook profile available with sections: ${keys.join(', ')}.`,
+      answer: answerText,
       sourceRefs: refs,
-      confidence: 0.7,
+      confidence: 0.9,
       timestamp: now(),
       warnings: [],
     };
@@ -287,11 +315,26 @@ export class WorkspaceAnswerComposer {
   // ── document_fact: LLM-assisted (only when snippets exist) ───────────
 
   private async answerDocumentFact(question: string): Promise<WorkspaceAnswer> {
-    const snippets = this.retriever.searchSourceFiles(question);
+    const snippets = this.retriever.searchWithRelationships(question);
 
     if (snippets.length === 0) {
       return this.insufficient(question, 'document_fact');
     }
+
+    // Build transparency warnings for related files
+    const warnings: string[] = [];
+    for (const s of snippets) {
+      if (s.isRelated && s.relationshipReason) {
+        warnings.push(`Included ${s.fileName} because it is ${s.relationshipReason}.`);
+      }
+    }
+
+    // Build sourceRefs from all snippets
+    const sourceRefs: WorkspaceAnswerSourceRef[] = snippets.map((s) => ({
+      fileName: s.fileName,
+      snippet: s.snippet,
+      artifactType: 'source-file' as const,
+    }));
 
     // Resolve model: eager instance first, then lazy factory
     let model = this.model;
@@ -312,19 +355,20 @@ export class WorkspaceAnswerComposer {
         question,
         intent: 'document_fact',
         answer: text,
-        sourceRefs: snippets.map((s) => ({
-          fileName: s.fileName,
-          snippet: s.snippet,
-          artifactType: 'source-file' as const,
-        })),
+        sourceRefs,
         confidence: 0.6,
         timestamp: now(),
-        warnings: ['No LLM available — returning raw snippets.'],
+        warnings: ['No LLM available — returning raw snippets.', ...warnings],
       };
     }
 
     let context = snippets
-      .map((s) => `--- ${s.fileName} ---\n${s.snippet}`)
+      .map((s) => {
+        const prefix = s.isRelated
+          ? `--- [related: ${s.fileName}] ---`
+          : `--- ${s.fileName} ---`;
+        return `${prefix}\n${s.snippet}`;
+      })
       .join('\n\n');
 
     // Truncate to cap LLM input cost
@@ -353,14 +397,10 @@ export class WorkspaceAnswerComposer {
       question,
       intent: 'document_fact',
       answer: answerText,
-      sourceRefs: snippets.map((s) => ({
-        fileName: s.fileName,
-        snippet: s.snippet,
-        artifactType: 'source-file' as const,
-      })),
+      sourceRefs,
       confidence: 0.75,
       timestamp: now(),
-      warnings: [],
+      warnings,
     };
   }
 

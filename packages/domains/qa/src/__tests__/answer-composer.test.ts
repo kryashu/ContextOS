@@ -311,4 +311,147 @@ describe('WorkspaceAnswerComposer', () => {
     expect(result.intent).toBe('source_relationships');
     expect(result.answer).toContain('config.json');
   });
+
+  // ── Relationship-aware retrieval (VS008) ──────────────────────────
+
+  it('document_fact with relationships expands context and includes related sourceRefs', async () => {
+    // Direct match source
+    writeFileSync(
+      resolve(sourcesDir, 'gaba_data.csv'),
+      'gaba,treatment,dose\n100,placebo,5mg\n200,active,10mg\n',
+    );
+    // Related supporting document
+    writeFileSync(
+      resolve(sourcesDir, 'method_notes.md'),
+      'The GABA assay method follows protocol v2. Treatment groups include placebo and active.',
+    );
+
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'method_notes.md', sourceB: 'gaba_data.csv', type: 'table_document_support', confidence: 0.86, evidence: ['gaba, treatment'] },
+        ],
+      }),
+    );
+
+    const model = new FakeListChatModel({
+      responses: ['The GABA data shows 100mg placebo and 200mg active doses.'],
+    });
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever, model);
+    const result = await composer.answer('What does the gaba treatment data show?');
+
+    expect(result.intent).toBe('document_fact');
+    const fileNames = result.sourceRefs.map(r => r.fileName);
+    expect(fileNames).toContain('gaba_data.csv');
+    expect(fileNames).toContain('method_notes.md');
+    expect(result.sourceRefs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('document_fact warns about included related files', async () => {
+    writeFileSync(resolve(sourcesDir, 'main.csv'), 'gaba,value\n100,200\n');
+    // No keyword overlap with "gaba" — included only via high-confidence relationship header snippet
+    writeFileSync(resolve(sourcesDir, 'support.md'), 'Column definitions for measurement units and patient identifiers.');
+
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'support.md', sourceB: 'main.csv', type: 'table_document_support', confidence: 0.8, evidence: ['columns'] },
+        ],
+      }),
+    );
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    // No model — raw snippet mode
+    const composer = new WorkspaceAnswerComposer(retriever);
+    const result = await composer.answer('What gaba values are in the data?');
+
+    const relatedWarning = result.warnings.find(w => w.includes('support.md'));
+    if (result.sourceRefs.some(r => r.fileName === 'support.md')) {
+      expect(relatedWarning).toBeDefined();
+      expect(relatedWarning).toContain('table_document_support');
+    }
+  });
+
+  it('sheet_query mentions related supporting documents', async () => {
+    writeFileSync(
+      resolve(outputDir, 'workbook-profile.json'),
+      JSON.stringify({
+        workbooks: [{ fileName: 'gaba_data.xlsx' }],
+        sheets: [
+          { name: 'Results', rowCount: 100 },
+        ],
+      }),
+    );
+
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'method_notes.md', sourceB: 'gaba_data.xlsx', type: 'table_document_support', confidence: 0.86, evidence: ['supports'] },
+          { sourceA: 'column_dict.md', sourceB: 'gaba_data.xlsx', type: 'shared_topic', confidence: 0.78, evidence: ['shared gaba topic'] },
+          { sourceA: 'unrelated.md', sourceB: 'gaba_data.xlsx', type: 'config_document_support', confidence: 0.6, evidence: ['config'] },
+        ],
+      }),
+    );
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever);
+    const result = await composer.answer('Which sheets are available?');
+
+    expect(result.intent).toBe('sheet_query');
+    expect(result.answer).toContain('Results');
+    expect(result.answer).toContain('Related supporting documents');
+    expect(result.answer).toContain('method_notes.md');
+    expect(result.answer).toContain('column_dict.md');
+    // config_document_support excluded from sheet_query enrichment
+    expect(result.answer).not.toContain('unrelated.md');
+    // sourceRefs include the related docs
+    const refNames = result.sourceRefs.map(r => r.fileName);
+    expect(refNames).toContain('method_notes.md');
+    expect(refNames).toContain('column_dict.md');
+  });
+
+  it('enriched sheet_query does NOT call LLM', async () => {
+    writeFileSync(
+      resolve(outputDir, 'workbook-profile.json'),
+      JSON.stringify({
+        workbooks: [{ fileName: 'data.xlsx' }],
+        sheets: [{ name: 'Sheet1', rowCount: 10 }],
+      }),
+    );
+
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'notes.md', sourceB: 'data.xlsx', type: 'table_document_support', confidence: 0.9, evidence: ['supports'] },
+        ],
+      }),
+    );
+
+    const throwingModel = new FakeListChatModel({ responses: [] });
+    throwingModel.invoke = () => {
+      throw new Error('LLM should not be called for sheet_query');
+    };
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever, throwingModel);
+    // Should NOT throw
+    const result = await composer.answer('Which sheets are available?');
+
+    expect(result.intent).toBe('sheet_query');
+    expect(result.answer).toContain('Sheet1');
+  });
 });
