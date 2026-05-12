@@ -21,6 +21,7 @@ import WorkbookProfileView from '@/components/WorkbookProfileView';
 import CalculationPanel from '@/components/CalculationPanel';
 import WorkspaceContextReport from '@/components/WorkspaceContextReport';
 import SourceProfileTable from '@/components/SourceProfileTable';
+import SourceRelationshipPanel from '@/components/SourceRelationshipPanel';
 import WorkspaceQA from '@/components/WorkspaceQA';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,7 @@ interface ManifestCapabilities {
   hasEval: boolean;
   hasSourceProfiles: boolean;
   hasWorkspaceContext: boolean;
+  hasSourceRelationships: boolean;
 }
 
 interface ManifestSourceEntry {
@@ -176,6 +178,11 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
     ? readJSON(resolve(outputDir, 'source-profiles.json')) as Array<Record<string, unknown>> | null
     : null;
 
+  // Source relationships (VS007)
+  const sourceRelationships = hasArtifact('hasSourceRelationships' as keyof ManifestCapabilities, 'workspace-relationships.json')
+    ? readJSON(resolve(outputDir, 'workspace-relationships.json')) as Record<string, unknown> | null
+    : null;
+
   // Extract calculation panel data from observations
   const candidateMetrics = workbookProfile
     ? (workbookProfile['candidateMetrics'] ?? []) as string[]
@@ -273,6 +280,7 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         }}>
           {workspaceCtx && <WorkspaceContextReport context={workspaceCtx} />}
           {sourceProfilesData && <SourceProfileTable profiles={sourceProfilesData} />}
+          {sourceRelationships && <SourceRelationshipPanel data={sourceRelationships} />}
           <WorkspaceSummary data={summary} />
           <SourceInventory data={summary} />
           {graph && <EntityTable nodes={graph.nodes ?? []} />}
