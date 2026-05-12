@@ -1,13 +1,15 @@
 # ContextOS - Database Schema Design
 
 **Version:** 1.0  
-**Date:** May 6, 2026  
-**Status:** Initial Design  
+**Date:** May 12, 2026  
+**Status:** Design Target (not yet implemented)  
 **Database:** PostgreSQL 16+ with pgvector extension
+
+> **Implementation note:** This document describes the planned PostgreSQL schema. The current implementation uses file-system storage (JSON files on disk). No database is required to run ContextOS today. This schema will be implemented when persistent storage is added.
 
 ## Overview
 
-ContextOS uses PostgreSQL as the primary data store with pgvector for vector similarity search. The schema is organized around domain boundaries with clear separation of concerns. For MVP, we use PostgreSQL's native capabilities for graph queries (recursive CTEs); Neo4j migration path available if needed.
+ContextOS will use PostgreSQL as the primary data store with pgvector for vector similarity search. The schema is organized around domain boundaries with clear separation of concerns. For the initial phase, PostgreSQL's native capabilities will handle graph queries (recursive CTEs); Neo4j migration path available if needed.
 
 ## Design Principles
 

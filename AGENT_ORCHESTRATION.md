@@ -1,12 +1,14 @@
 # ContextOS - LangGraph Agent Orchestration
 
 **Version:** 1.0  
-**Date:** May 6, 2026  
-**Status:** Initial Design
+**Date:** May 12, 2026  
+**Status:** Design Target (not yet implemented)
+
+> **Implementation note:** This document describes the planned LangGraph.js agent orchestration architecture. None of this is implemented yet. The current system uses a sequential pipeline (see the CLI `analyze` command). This document is retained as the design target for future agent workflow support.
 
 ## Overview
 
-ContextOS uses LangGraph.js for orchestrating complex multi-agent workflows. LangGraph provides explicit state machines with persistence, making workflows debuggable, resumable, and auditable. This document defines the agent architecture, workflow patterns, and orchestration strategies.
+ContextOS will use LangGraph.js for orchestrating complex multi-agent workflows. LangGraph provides explicit state machines with persistence, making workflows debuggable, resumable, and auditable. This document defines the planned agent architecture, workflow patterns, and orchestration strategies.
 
 ## Why LangGraph?
 

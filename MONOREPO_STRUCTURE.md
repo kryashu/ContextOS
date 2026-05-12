@@ -1,8 +1,10 @@
 # ContextOS - Monorepo Structure
 
-**Version:** 1.0  
-**Date:** May 6, 2026  
-**Status:** Initial Design
+**Version:** 1.1  
+**Date:** May 12, 2026  
+**Status:** Active (partially matches design target)
+
+> **Implementation note:** The actual monorepo structure follows the pattern described here but does not include all planned packages. Packages that exist today: `@contextos/types`, `@contextos/ui`, `@contextos/ai`, `@contextos/cli`, `@contextos/parsers`, `@contextos/profiler`, `@contextos/classifier`, `@contextos/extractor`, `@contextos/generator`, `@contextos/relationships`, `@contextos/quality`, `@contextos/qa`, `@contextos/calculator`. Packages not yet created: `@contextos/database`, `@contextos/config`, `@contextos/observability`, `@contextos/events`, `@contextos/ingestion`, `@contextos/retrieval`, `@contextos/reasoning`, `@contextos/orchestration`, `@contextos/knowledge-graph`.
 
 ## Overview
 

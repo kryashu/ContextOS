@@ -1,8 +1,10 @@
 # ContextOS - Domain Boundaries & Specifications
 
-**Version:** 1.0  
-**Date:** May 6, 2026  
-**Status:** Initial Design
+**Version:** 1.1  
+**Date:** May 12, 2026  
+**Status:** Design Target (partially implemented)
+
+> **Implementation note:** This document describes the full design target for domain boundaries. The implemented domains are: parsers, profiler, classifier, extractor, generator, relationships, quality, qa, calculator, and ai. The Ingestion, Retrieval, Orchestration, and Knowledge Graph domains described below are not yet implemented as specified — they represent the planned architecture. See the [README](./README.md#current-status) for what exists today.
 
 ## Overview
 

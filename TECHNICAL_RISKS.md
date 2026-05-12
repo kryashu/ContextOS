@@ -1,8 +1,10 @@
 # ContextOS - Technical Risks & Mitigations
 
-**Version:** 1.0  
-**Date:** May 6, 2026  
-**Status:** Initial Design
+**Version:** 1.1  
+**Date:** May 12, 2026  
+**Status:** Active
+
+> **Note:** Some risks listed here apply to planned infrastructure (PostgreSQL, Redis, Neo4j) that is not yet implemented. They are retained because they will become relevant as the system grows. Risks related to the current implementation (LLM costs, data quality, extraction quality) are active today.
 
 ## Overview
 
