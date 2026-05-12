@@ -16,7 +16,7 @@ import {
   deleteSourceFile,
 } from '@/lib/workspaces';
 import { TableCalculator } from '@contextos/calculator';
-import { WorkspaceAnswerComposer, LocalRetriever, WorkspaceReportGenerator } from '@contextos/qa';
+import { WorkspaceAnswerComposer, LocalRetriever, WorkspaceReportGenerator, PdfReportRenderer } from '@contextos/qa';
 import { getModelForTask, TaskType } from '@contextos/ai';
 import type { WorkspaceAnswer } from '@contextos/types';
 
@@ -348,6 +348,56 @@ export async function downloadReportAction(
     }
 
     const content = readFileSync(reportPath, 'utf-8');
+    return { success: true, content, message: 'OK' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Download failed: ${msg}` };
+  }
+}
+
+export async function generatePdfReportAction(
+  workspaceId: string,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, message: 'Workspace not found.' };
+    }
+
+    const outputDir = getOutputDir(workspaceId);
+    const mdPath = resolve(outputDir, 'workspace-report.md');
+    if (!existsSync(mdPath)) {
+      return { success: false, message: 'Generate the Markdown report first.' };
+    }
+
+    const markdown = readFileSync(mdPath, 'utf-8');
+    const renderer = new PdfReportRenderer();
+    const pdfBuffer = await renderer.render(markdown);
+    writeFileSync(resolve(outputDir, 'workspace-report.pdf'), pdfBuffer);
+
+    return { success: true, message: 'PDF report generated.' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `PDF generation failed: ${msg}` };
+  }
+}
+
+export async function downloadPdfReportAction(
+  workspaceId: string,
+): Promise<{ success: boolean; content?: string; message: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, message: 'Workspace not found.' };
+    }
+
+    const outputDir = getOutputDir(workspaceId);
+    const pdfPath = resolve(outputDir, 'workspace-report.pdf');
+    if (!existsSync(pdfPath)) {
+      return { success: false, message: 'No PDF report found. Generate a PDF report first.' };
+    }
+
+    const content = readFileSync(pdfPath).toString('base64');
     return { success: true, content, message: 'OK' };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

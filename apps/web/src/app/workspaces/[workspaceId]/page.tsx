@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis, generateReportAction, downloadReportAction } from '../actions';
+import { runWorkspaceAnalysis, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
 import WorkspaceSummary from '@/components/WorkspaceSummary';
 import SourceInventory from '@/components/SourceInventory';
@@ -41,6 +41,7 @@ interface ManifestCapabilities {
   hasWorkspaceContext: boolean;
   hasSourceRelationships: boolean;
   hasReport: boolean;
+  hasPdf: boolean;
 }
 
 interface ManifestSourceEntry {
@@ -344,6 +345,7 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
           <ReportPanel
             workspaceId={workspace.id}
             hasReport={hasArtifact('hasReport', 'workspace-report.md')}
+            hasPdf={hasArtifact('hasPdf', 'workspace-report.pdf')}
             generateAction={async () => {
               'use server';
               return generateReportAction(workspace.id);
@@ -351,6 +353,14 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
             downloadAction={async () => {
               'use server';
               return downloadReportAction(workspace.id);
+            }}
+            generatePdfAction={async () => {
+              'use server';
+              return generatePdfReportAction(workspace.id);
+            }}
+            downloadPdfAction={async () => {
+              'use server';
+              return downloadPdfReportAction(workspace.id);
             }}
           />
         </Card>
