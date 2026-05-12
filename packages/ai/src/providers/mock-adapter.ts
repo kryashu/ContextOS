@@ -11,23 +11,23 @@ const MOCK_RESPONSES: Record<string, string> = {
 
   extraction: JSON.stringify({
     entities: [
-      { type: 'actor',    name: 'Customer',           description: 'End-user placing orders',       metadata: {}, confidence: 0.95 },
-      { type: 'system',   name: 'Checkout Service',    description: 'Handles checkout flow',         metadata: {}, confidence: 0.95 },
-      { type: 'system',   name: 'Payment Service',     description: 'Processes payments',            metadata: {}, confidence: 0.9  },
-      { type: 'system',   name: 'Order Service',       description: 'Manages orders',                metadata: {}, confidence: 0.9  },
-      { type: 'system',   name: 'Notification Service', description: 'Sends notifications',          metadata: {}, confidence: 0.85 },
-      { type: 'data_store', name: 'Order Database',    description: 'Persists order data',           metadata: {}, confidence: 0.9  },
-      { type: 'external_integration', name: 'Stripe',  description: 'Payment gateway',               metadata: {}, confidence: 0.95 },
-      { type: 'endpoint', name: 'POST /checkout',      description: 'Checkout API endpoint',         metadata: {}, confidence: 0.9  },
+      { type: 'actor',    name: 'User',               description: 'End-user interacting with the system', metadata: {}, confidence: 0.95 },
+      { type: 'system',   name: 'Data Processor',      description: 'Handles data processing pipeline',     metadata: {}, confidence: 0.95 },
+      { type: 'system',   name: 'Storage Service',     description: 'Manages data persistence',             metadata: {}, confidence: 0.9  },
+      { type: 'system',   name: 'Analytics Engine',    description: 'Computes analytics and metrics',       metadata: {}, confidence: 0.9  },
+      { type: 'system',   name: 'Notification Service', description: 'Sends notifications',                 metadata: {}, confidence: 0.85 },
+      { type: 'data_store', name: 'Application Database', description: 'Persists application data',         metadata: {}, confidence: 0.9  },
+      { type: 'external_integration', name: 'External API', description: 'Third-party API integration',     metadata: {}, confidence: 0.95 },
+      { type: 'endpoint', name: 'POST /api/process',   description: 'Data processing API endpoint',         metadata: {}, confidence: 0.9  },
     ],
     relationships: [
-      { type: 'uses',            sourceEntityName: 'Customer',         targetEntityName: 'Checkout Service',    description: 'Places orders',         metadata: {}, confidence: 0.95 },
-      { type: 'calls',           sourceEntityName: 'Checkout Service', targetEntityName: 'Payment Service',     description: 'Requests payment',      metadata: {}, confidence: 0.9  },
-      { type: 'calls',           sourceEntityName: 'Checkout Service', targetEntityName: 'Order Service',       description: 'Creates order',         metadata: {}, confidence: 0.9  },
-      { type: 'integrates_with', sourceEntityName: 'Payment Service',  targetEntityName: 'Stripe',              description: 'Processes via Stripe',  metadata: {}, confidence: 0.9  },
-      { type: 'stores_in',       sourceEntityName: 'Order Service',    targetEntityName: 'Order Database',      description: 'Persists orders',       metadata: {}, confidence: 0.9  },
-      { type: 'calls',           sourceEntityName: 'Order Service',    targetEntityName: 'Notification Service', description: 'Sends confirmation',   metadata: {}, confidence: 0.85 },
-      { type: 'implements',      sourceEntityName: 'Checkout Service', targetEntityName: 'POST /checkout',      description: 'Serves endpoint',       metadata: {}, confidence: 0.9  },
+      { type: 'uses',            sourceEntityName: 'User',              targetEntityName: 'Data Processor',      description: 'Submits data',          metadata: {}, confidence: 0.95 },
+      { type: 'calls',           sourceEntityName: 'Data Processor',    targetEntityName: 'Storage Service',     description: 'Persists results',      metadata: {}, confidence: 0.9  },
+      { type: 'calls',           sourceEntityName: 'Data Processor',    targetEntityName: 'Analytics Engine',    description: 'Requests analysis',     metadata: {}, confidence: 0.9  },
+      { type: 'integrates_with', sourceEntityName: 'Data Processor',    targetEntityName: 'External API',        description: 'Fetches external data', metadata: {}, confidence: 0.9  },
+      { type: 'stores_in',       sourceEntityName: 'Storage Service',   targetEntityName: 'Application Database', description: 'Writes records',       metadata: {}, confidence: 0.9  },
+      { type: 'calls',           sourceEntityName: 'Analytics Engine',  targetEntityName: 'Notification Service', description: 'Sends alerts',         metadata: {}, confidence: 0.85 },
+      { type: 'implements',      sourceEntityName: 'Data Processor',    targetEntityName: 'POST /api/process',   description: 'Serves endpoint',       metadata: {}, confidence: 0.9  },
     ],
   }),
 
@@ -47,13 +47,13 @@ const MOCK_RESPONSES: Record<string, string> = {
 
   artifact_generation: [
     'flowchart TB',
-    '    Customer[["Customer"]]',
-    '    CheckoutService("Checkout Service")',
-    '    PaymentService("Payment Service")',
-    '    Stripe[["Stripe"]]',
-    '    Customer --> |"places order"| CheckoutService',
-    '    CheckoutService --> |"requests payment"| PaymentService',
-    '    PaymentService --> |"processes"| Stripe',
+    '    User[["User"]]',
+    '    DataProcessor("Data Processor")',
+    '    StorageService("Storage Service")',
+    '    ExternalAPI[["External API"]]',
+    '    User --> |"submits data"| DataProcessor',
+    '    DataProcessor --> |"persists results"| StorageService',
+    '    DataProcessor --> |"fetches"| ExternalAPI',
   ].join('\n'),
 
   // Default / health-check
@@ -66,15 +66,21 @@ const MOCK_RESPONSES: Record<string, string> = {
 };
 
 /**
- * Create mock model instance for testing.
- * Returns a task-aware FakeListChatModel that always produces
- * the correct response for the requested task type.
+ * Create a test model instance for deterministic testing.
+ * Preferred over createMockModel — same behaviour, clearer intent.
  */
-export function createMockModel(options: ModelOptions = {}): FakeListChatModel {
+export function createTestModel(options: ModelOptions = {}): FakeListChatModel {
   const taskType = options.taskType ?? 'default';
   const response = MOCK_RESPONSES[taskType] ?? MOCK_RESPONSES['default']!;
 
   return new FakeListChatModel({
     responses: [response],
   });
+}
+
+/**
+ * @deprecated Use createTestModel instead.
+ */
+export function createMockModel(options: ModelOptions = {}): FakeListChatModel {
+  return createTestModel(options);
 }

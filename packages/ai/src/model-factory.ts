@@ -83,14 +83,22 @@ export function createChatModel(
   provider: Provider | string,
   options: ModelOptions = {}
 ): BaseChatModel {
-  const normalizedProvider = (provider || 'mock').toLowerCase() as Provider;
-
-  // Guard: when LLM_PROVIDER=mock, refuse to create hosted adapters
-  const config = getConfig();
-  if (config.provider === 'mock' && HOSTED_PROVIDERS.has(normalizedProvider)) {
+  if (!provider) {
     throw new Error(
-      `Cannot create hosted provider "${normalizedProvider}" when LLM_PROVIDER=mock. ` +
-      `Set LLM_PROVIDER to a hosted provider or change requested provider to mock.`
+      'Provider is required. Set LLM_PROVIDER to a valid provider (ollama, gemini, groq, openai).'
+    );
+  }
+  const normalizedProvider = provider.toLowerCase() as Provider;
+
+  // Guard: when LLM_PROVIDER is not configured or is mock, refuse to create hosted adapters
+  const config = getConfig();
+  if (
+    (!config.provider || config.provider === 'mock') &&
+    HOSTED_PROVIDERS.has(normalizedProvider)
+  ) {
+    throw new Error(
+      `Cannot create hosted provider "${normalizedProvider}" when LLM_PROVIDER is not configured. ` +
+      `Set LLM_PROVIDER to a hosted provider or change requested provider.`
     );
   }
 
@@ -108,6 +116,12 @@ export function createChatModel(
       return createOpenAIModel(options);
     
     case 'mock':
+      if (process.env['NODE_ENV'] !== 'test' && process.env['ENABLE_TEST_MODEL'] !== 'true') {
+        throw new Error(
+          'Mock provider is only available in test environments. ' +
+          'Set NODE_ENV=test or ENABLE_TEST_MODEL=true.'
+        );
+      }
       return createMockModel(options);
     
     default:
