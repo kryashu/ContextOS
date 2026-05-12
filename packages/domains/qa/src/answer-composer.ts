@@ -5,6 +5,7 @@ import { QuestionRouter } from './question-router.js';
 import { LocalRetriever } from './local-retriever.js';
 
 const INSUFFICIENT = 'I could not find enough information in this workspace to answer that.';
+const MAX_CONTEXT_CHARS = 6000; // cap context sent to LLM
 
 function now(): string {
   return new Date().toISOString();
@@ -14,7 +15,7 @@ function now(): string {
  * WorkspaceAnswerComposer dispatches by intent to build grounded answers.
  *
  * Invariants:
- * - Deterministic intents (about, irrelevant_files, capabilities, sheet_query) never call the LLM.
+ * - Deterministic intents (about, irrelevant_files, capabilities, source_relationships, sheet_query) never call the LLM.
  * - document_fact calls LLM only when retrieved snippets exist.
  * - Every non-empty factual answer includes ≥1 sourceRef (enforceGrounding).
  */
@@ -24,6 +25,7 @@ export class WorkspaceAnswerComposer {
   constructor(
     private readonly retriever: LocalRetriever,
     private readonly model?: BaseChatModel,
+    private readonly modelFactory?: () => Promise<BaseChatModel>,
   ) {}
 
   async answer(question: string): Promise<WorkspaceAnswer> {
@@ -39,6 +41,9 @@ export class WorkspaceAnswerComposer {
         break;
       case 'capabilities':
         result = this.answerCapabilities(question);
+        break;
+      case 'source_relationships':
+        result = this.answerSourceRelationships(question);
         break;
       case 'sheet_query':
         result = this.answerSheetQuery(question);
@@ -172,6 +177,71 @@ export class WorkspaceAnswerComposer {
     };
   }
 
+  private answerSourceRelationships(question: string): WorkspaceAnswer {
+    const relMap = this.retriever.loadWorkspaceRelationships();
+    if (!relMap || relMap.relationships.length === 0) {
+      return this.insufficient(question, 'source_relationships');
+    }
+
+    const connected = relMap.relationships
+      .filter(r => r.type !== 'isolated_source')
+      .sort((a, b) => b.confidence - a.confidence);
+    const isolated = relMap.relationships.filter(r => r.type === 'isolated_source');
+
+    const parts: string[] = [];
+
+    if (connected.length > 0) {
+      parts.push(`I found ${connected.length} source relationship(s) in this workspace.\n`);
+      parts.push('Strong relationships:');
+      for (const r of connected) {
+        parts.push(`- ${r.sourceA} → ${r.sourceB}`);
+        parts.push(`  Type: ${r.type}`);
+        if (r.evidence.length > 0) {
+          parts.push(`  Reason: ${r.evidence.join('. ')}`);
+        }
+        parts.push(`  Confidence: ${(r.confidence * 100).toFixed(0)}%`);
+      }
+    }
+
+    if (isolated.length > 0) {
+      if (connected.length > 0) parts.push('');
+      parts.push('Isolated sources:');
+      for (const r of isolated) {
+        parts.push(`- ${r.sourceA}`);
+        if (r.evidence.length > 0) {
+          parts.push(`  Reason: ${r.evidence[0]}`);
+        }
+      }
+    }
+
+    if (parts.length === 0) {
+      return this.insufficient(question, 'source_relationships');
+    }
+
+    // Build snippet summary for sourceRef
+    const snippetLines: string[] = [];
+    for (const r of connected.slice(0, 3)) {
+      snippetLines.push(`${r.sourceA} → ${r.sourceB} (${r.type})`);
+    }
+    if (isolated.length > 0) {
+      snippetLines.push(`${isolated.length} isolated source(s)`);
+    }
+
+    return {
+      question,
+      intent: 'source_relationships',
+      answer: parts.join('\n'),
+      sourceRefs: [{
+        fileName: 'workspace-relationships.json',
+        artifactType: 'workspace-relationships',
+        snippet: snippetLines.join('; '),
+      }],
+      confidence: 0.9,
+      timestamp: now(),
+      warnings: [],
+    };
+  }
+
   private answerSheetQuery(question: string): WorkspaceAnswer {
     const wb = this.retriever.loadWorkbookProfile();
     if (!wb) {
@@ -223,7 +293,17 @@ export class WorkspaceAnswerComposer {
       return this.insufficient(question, 'document_fact');
     }
 
-    if (!this.model) {
+    // Resolve model: eager instance first, then lazy factory
+    let model = this.model;
+    if (!model && this.modelFactory) {
+      try {
+        model = await this.modelFactory();
+      } catch {
+        // Factory failed (e.g. no provider configured) — fall through to raw snippets
+      }
+    }
+
+    if (!model) {
       // No model available — return snippets directly
       const text = snippets
         .map((s) => `[${s.fileName}]: ${s.snippet}`)
@@ -243,16 +323,21 @@ export class WorkspaceAnswerComposer {
       };
     }
 
-    const context = snippets
+    let context = snippets
       .map((s) => `--- ${s.fileName} ---\n${s.snippet}`)
       .join('\n\n');
+
+    // Truncate to cap LLM input cost
+    if (context.length > MAX_CONTEXT_CHARS) {
+      context = context.slice(0, MAX_CONTEXT_CHARS) + '\n…[truncated]';
+    }
 
     const systemPrompt =
       'You are a workspace Q&A assistant. Answer ONLY from the provided source excerpts. ' +
       'If the excerpts do not contain enough information, say "I could not find enough information in this workspace to answer that." ' +
       'Never invent information. Cite the file name(s) you used.';
 
-    const result = await this.model.invoke([
+    const result = await model.invoke([
       new SystemMessage(systemPrompt),
       new HumanMessage(
         `Source excerpts:\n${context}\n\nQuestion: ${question}`,

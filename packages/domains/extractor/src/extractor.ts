@@ -94,6 +94,10 @@ export class EntityExtractor {
       temperature: 0,
     });
 
+    if (!model) {
+      return { entities: [], relationships: [] };
+    }
+
     const prompt = this.buildPrompt(source);
 
     const result = await model.invoke(prompt);

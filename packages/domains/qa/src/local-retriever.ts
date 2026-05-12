@@ -1,10 +1,11 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { WorkspaceContext, SourceProfile } from '@contextos/types';
+import type { WorkspaceContext, SourceProfile, SourceRelationshipMap } from '@contextos/types';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.json', '.yaml', '.yml', '.csv']);
 const SNIPPET_RADIUS = 250; // chars around match
 const MAX_FILE_SIZE = 512 * 1024; // skip files larger than 512KB for search
+const MAX_TOTAL_SNIPPET_CHARS = 3000; // cap total snippet bytes sent to LLM
 
 export interface RetrievedSnippet {
   fileName: string;
@@ -35,6 +36,10 @@ export class LocalRetriever {
 
   loadNormalizedObservations(): Array<Record<string, unknown>> | null {
     return this.readJSON<Array<Record<string, unknown>>>('normalized-observations.json');
+  }
+
+  loadWorkspaceRelationships(): SourceRelationshipMap | null {
+    return this.readJSON<SourceRelationshipMap>('workspace-relationships.json');
   }
 
   /**
@@ -97,10 +102,20 @@ export class LocalRetriever {
       }
     }
 
-    return results
+    const sorted = results
       .sort((a, b) => b.score - a.score)
       .slice(0, maxResults)
       .map(({ fileName, snippet }) => ({ fileName, snippet }));
+
+    // Cap total snippet chars to avoid oversized LLM context
+    let totalChars = 0;
+    const capped: RetrievedSnippet[] = [];
+    for (const s of sorted) {
+      if (totalChars + s.snippet.length > MAX_TOTAL_SNIPPET_CHARS) break;
+      totalChars += s.snippet.length;
+      capped.push(s);
+    }
+    return capped;
   }
 
   private readJSON<T>(fileName: string): T | null {

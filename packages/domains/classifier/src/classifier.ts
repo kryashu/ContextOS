@@ -180,6 +180,14 @@ export class SourceClassifier {
       temperature: 0.1,
     });
 
+    if (!model) {
+      return {
+        category: 'unknown',
+        relevanceScore: 0.5,
+        reasoning: 'No LLM provider available for classification',
+      };
+    }
+
     const prompt = `You are a technical documentation classifier. Analyze this document and classify it.
 
 File: ${source.fileName}
