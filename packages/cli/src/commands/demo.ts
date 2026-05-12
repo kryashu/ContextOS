@@ -2,7 +2,8 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import type { Source, Entity, Relationship, WorkspaceSummary, Finding, Artifact, RelationshipGraph, AnalysisManifest, ManifestCapabilities, ManifestSourceEntry, SourceProfile, WorkspaceContext } from '@contextos/types';
+import type { Source, Entity, Relationship, WorkspaceSummary, Finding, Artifact, RelationshipGraph, AnalysisManifest, ManifestCapabilities, ManifestSourceEntry, SourceProfile, WorkspaceContext, SourceRelationshipMap } from '@contextos/types';
+import { SourceRelationshipMapper } from '@contextos/relationships';
 import { parserRegistry } from '@contextos/parsers';
 import { SourceClassifier } from '@contextos/classifier';
 import { EntityExtractor } from '@contextos/extractor';
@@ -11,11 +12,11 @@ import { QualityDetector } from '@contextos/quality';
 import { SourceProfiler, WorkspaceContextBuilder } from '@contextos/profiler';
 
 /**
- * DemoCommand orchestrates the full vertical slice demo
+ * AnalyzeCommand orchestrates the full analysis pipeline
  */
-export class DemoCommand {
+export class AnalyzeCommand {
   async execute(workspacePath: string): Promise<void> {
-    console.log('🚀 ContextOS Demo - Workspace Intelligence\n');
+    console.log('🚀 ContextOS Analysis - Workspace Intelligence\n');
     console.log(`📁 Workspace: ${workspacePath}\n`);
 
     // Step 1: Load workspace
@@ -104,6 +105,12 @@ export class DemoCommand {
     const workspaceContext = contextBuilder.build(workspace.id, sourceProfiles, sources);
     console.log(`✅ Workspace context built — theme: "${workspaceContext.primaryTheme}"\n`);
 
+    // Step 8.7: Map cross-source relationships (VS007)
+    console.log('Step 8.7: Mapping cross-source relationships...');
+    const relationshipMapper = new SourceRelationshipMapper();
+    const sourceRelationships = relationshipMapper.compute(workspace.id, sourceProfiles);
+    console.log(`✅ Found ${sourceRelationships.relationships.length} cross-source relationship(s)\n`);
+
     // Step 9: Write outputs
     console.log('Step 9: Writing outputs...');
     await this.writeOutputs(workspacePath, {
@@ -113,6 +120,7 @@ export class DemoCommand {
       dfd,
       sourceProfiles,
       workspaceContext,
+      sourceRelationships,
     });
     await this.writeExcelOutputs(workspacePath, sources);
 
@@ -286,6 +294,7 @@ export class DemoCommand {
       dfd: Artifact | null;
       sourceProfiles: SourceProfile[];
       workspaceContext: WorkspaceContext;
+      sourceRelationships: SourceRelationshipMap;
     }
   ): Promise<void> {
     const outputDir = path.join(workspacePath, 'output');
@@ -334,6 +343,13 @@ export class DemoCommand {
       JSON.stringify(outputs.workspaceContext, null, 2)
     );
     console.log(`  🌐 Wrote workspace-context.json`);
+
+    // Write source relationships (VS007)
+    await fs.writeFile(
+      path.join(outputDir, 'workspace-relationships.json'),
+      JSON.stringify(outputs.sourceRelationships, null, 2)
+    );
+    console.log(`  🔗 Wrote workspace-relationships.json (${outputs.sourceRelationships.relationships.length} relationships)`);
   }
 
   private async writeExcelOutputs(
@@ -410,6 +426,7 @@ export class DemoCommand {
       'normalized-observations.json',
       'source-profiles.json',
       'workspace-context.json',
+      'workspace-relationships.json',
     ];
     const existingArtifacts: string[] = [];
     for (const f of artifactFiles) {
@@ -432,6 +449,7 @@ export class DemoCommand {
       hasEval: false,
       hasSourceProfiles: existingArtifacts.includes('source-profiles.json'),
       hasWorkspaceContext: existingArtifacts.includes('workspace-context.json'),
+      hasSourceRelationships: existingArtifacts.includes('workspace-relationships.json'),
     };
 
     const manifest: AnalysisManifest = {

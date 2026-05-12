@@ -116,14 +116,14 @@ export async function runEval(testName: string): Promise<void> {
 }
 
 async function runDemo(): Promise<void> {
-  const { DemoCommand } = await import('./demo.js');
+  const { AnalyzeCommand } = await import('./demo.js');
   const { rootDir } = await import('../bootstrap.js');
   const workspacePath = path.join(
     rootDir,
     'demo-workspaces/checkout-system'
   );
-  const demoCommand = new DemoCommand();
-  await demoCommand.execute(workspacePath);
+  const analyzeCommand = new AnalyzeCommand();
+  await analyzeCommand.execute(workspacePath);
 }
 
 async function scoreEntityRecall(
