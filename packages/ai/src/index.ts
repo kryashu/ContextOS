@@ -41,9 +41,19 @@ export {
   type ValidProvider,
 } from './config.js';
 
+export {
+  getModelPolicy,
+  type ModelPolicy,
+} from './model-policy.js';
+
+export {
+  estimateTokens,
+  logModelCall,
+} from './model-logger.js';
+
 // Provider adapters (for advanced usage)
 export { createOllamaModel } from './providers/ollama-adapter.js';
 export { createGeminiModel } from './providers/gemini-adapter.js';
 export { createGroqModel } from './providers/groq-adapter.js';
 export { createOpenAIModel } from './providers/openai-adapter.js';
-export { createMockModel } from './providers/mock-adapter.js';
+export { createMockModel, createTestModel } from './providers/mock-adapter.js';
