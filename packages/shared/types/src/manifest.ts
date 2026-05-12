@@ -23,6 +23,7 @@ export interface ManifestCapabilities {
   hasWorkspaceContext: boolean;
   hasSourceRelationships: boolean;
   hasReport: boolean;
+  hasPdf: boolean;
 }
 
 export interface AnalysisManifest {
