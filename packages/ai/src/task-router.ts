@@ -12,6 +12,7 @@ export enum TaskType {
   EXTRACTION = 'extraction',
   RELATIONSHIP_MAPPING = 'relationship_mapping',
   ARTIFACT_GENERATION = 'artifact_generation',
+  QA = 'qa',
 }
 
 /**
@@ -50,6 +51,12 @@ const TASK_CONFIGS: Record<TaskType, TaskConfig> = {
     preferLocal: false,
     allowFallback: false, // Requires structured reasoning
     complexityLevel: 'high',
+  },
+  [TaskType.QA]: {
+    preferLocal: false,
+    allowFallback: true,
+    complexityLevel: 'medium',
+    maxContextSize: 8000,
   },
 };
 

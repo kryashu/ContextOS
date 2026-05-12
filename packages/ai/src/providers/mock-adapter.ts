@@ -61,6 +61,8 @@ const MOCK_RESPONSES: Record<string, string> = {
     status: 'working',
     message: 'Mock provider is operational',
   }),
+
+  qa: 'Based on the provided source materials, the workspace contains documentation and structured data related to the analysed domain.',
 };
 
 /**
