@@ -118,6 +118,9 @@ importers:
       '@contextos/quality':
         specifier: workspace:*
         version: link:../domains/quality
+      '@contextos/relationships':
+        specifier: workspace:*
+        version: link:../domains/relationships
       '@contextos/types':
         specifier: workspace:*
         version: link:../shared/types
@@ -257,6 +260,19 @@ importers:
         version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
 
   packages/domains/quality:
+    dependencies:
+      '@contextos/types':
+        specifier: workspace:*
+        version: link:../../shared/types
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.5.0
+        version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
+
+  packages/domains/relationships:
     dependencies:
       '@contextos/types':
         specifier: workspace:*

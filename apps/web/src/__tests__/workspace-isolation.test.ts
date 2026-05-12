@@ -53,6 +53,9 @@ interface ManifestCapabilities {
   hasGraph: boolean;
   hasFindings: boolean;
   hasEval: boolean;
+  hasSourceProfiles: boolean;
+  hasWorkspaceContext: boolean;
+  hasSourceRelationships: boolean;
 }
 
 interface ManifestSourceEntry {
@@ -133,6 +136,9 @@ function writeManifest(outputDir: string, overrides: Partial<AnalysisManifest> =
       hasGraph: false,
       hasFindings: false,
       hasEval: false,
+      hasSourceProfiles: false,
+      hasWorkspaceContext: false,
+      hasSourceRelationships: false,
     },
     ...overrides,
   };
@@ -195,6 +201,9 @@ describe('Workspace isolation', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -221,6 +230,9 @@ describe('Workspace isolation', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -241,6 +253,9 @@ describe('Workspace isolation', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -262,6 +277,9 @@ describe('Workspace isolation', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -419,6 +437,9 @@ describe('Source-type-aware pipeline', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -441,6 +462,9 @@ describe('Source-type-aware pipeline', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -478,6 +502,9 @@ describe('Source-type-aware pipeline', () => {
         hasGraph: true,
         hasFindings: true,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 
@@ -519,6 +546,9 @@ describe('Calculation engine lifecycle', () => {
         hasGraph: false,
         hasFindings: false,
         hasEval: false,
+        hasSourceProfiles: false,
+        hasWorkspaceContext: false,
+        hasSourceRelationships: false,
       },
     });
 

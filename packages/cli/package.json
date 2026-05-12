@@ -19,6 +19,7 @@
     "@contextos/generator": "workspace:*",
     "@contextos/quality": "workspace:*",
     "@contextos/profiler": "workspace:*",
+    "@contextos/relationships": "workspace:*",
     "@contextos/ai": "workspace:*",
     "dotenv": "^16.4.0",
     "zod": "^3.22.4"
