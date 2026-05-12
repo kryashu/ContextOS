@@ -16,6 +16,9 @@ import {
   deleteSourceFile,
 } from '@/lib/workspaces';
 import { TableCalculator } from '@contextos/calculator';
+import { WorkspaceAnswerComposer, LocalRetriever } from '@contextos/qa';
+import { getModelForTask, TaskType } from '@contextos/ai';
+import type { WorkspaceAnswer } from '@contextos/types';
 
 /** Monorepo root — apps/web -> apps -> root */
 const ROOT_DIR = resolve(process.cwd(), '..', '..');
@@ -242,5 +245,64 @@ export async function deleteSourceFileAction(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, message: `Failed to delete file: ${msg}` };
+  }
+}
+
+const MAX_QUESTION_LENGTH = 500;
+
+export async function askWorkspaceQuestion(
+  workspaceId: string,
+  question: string,
+): Promise<{ success: boolean; answer?: WorkspaceAnswer; message: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, message: 'Workspace not found.' };
+    }
+
+    const trimmed = question.trim();
+    if (!trimmed) {
+      return { success: false, message: 'Question cannot be empty.' };
+    }
+    if (trimmed.length > MAX_QUESTION_LENGTH) {
+      return { success: false, message: `Question must be ${MAX_QUESTION_LENGTH} characters or fewer.` };
+    }
+
+    const outputDir = getOutputDir(workspaceId);
+
+    // Validate manifest exists
+    const manifestPath = resolve(outputDir, 'analysis-manifest.json');
+    if (!existsSync(manifestPath)) {
+      return { success: false, message: 'No analysis manifest found. Run analysis first.' };
+    }
+
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+
+    // Validate analysis is current (not stale)
+    const currentHashes = computeSourceHashes(workspaceId);
+    const manifestHashes: Record<string, string> = {};
+    for (const s of manifest.sourceFiles ?? []) {
+      manifestHashes[s.fileName] = s.hash;
+    }
+    const currentKeys = Object.keys(currentHashes).sort();
+    const manifestKeys = Object.keys(manifestHashes).sort();
+    const hashesMatch =
+      currentKeys.length === manifestKeys.length &&
+      currentKeys.every((k: string) => currentHashes[k] === manifestHashes[k]);
+
+    if (!hashesMatch) {
+      return { success: false, message: 'Analysis is stale. Re-run analysis before asking questions.' };
+    }
+
+    const sourcesDir = getSourcesDir(workspaceId);
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const model = await getModelForTask(TaskType.QA);
+    const composer = new WorkspaceAnswerComposer(retriever, model);
+    const answer = await composer.answer(trimmed);
+
+    return { success: true, answer, message: 'OK' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Q&A failed: ${msg}` };
   }
 }

@@ -21,6 +21,7 @@ import WorkbookProfileView from '@/components/WorkbookProfileView';
 import CalculationPanel from '@/components/CalculationPanel';
 import WorkspaceContextReport from '@/components/WorkspaceContextReport';
 import SourceProfileTable from '@/components/SourceProfileTable';
+import WorkspaceQA from '@/components/WorkspaceQA';
 
 export const dynamic = 'force-dynamic';
 
@@ -307,6 +308,18 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
             filterOptions={calcFilterOptions}
             analysisState={analysisState}
           />
+        </Card>
+      )}
+
+      {/* Workspace Q&A */}
+      {(analysisState === 'current' || analysisState === 'stale') && (
+        <Card style={{
+          padding: 20,
+          marginTop: 24,
+          opacity: analysisState === 'stale' ? 0.7 : 1,
+        }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>💬 Workspace Q&amp;A</h2>
+          <WorkspaceQA workspaceId={workspace.id} analysisState={analysisState} />
         </Card>
       )}
     </div>
