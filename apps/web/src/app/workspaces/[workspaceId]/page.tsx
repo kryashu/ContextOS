@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis } from '../actions';
+import { runWorkspaceAnalysis, generateReportAction, downloadReportAction } from '../actions';
 
 import WorkspaceSummary from '@/components/WorkspaceSummary';
 import SourceInventory from '@/components/SourceInventory';
@@ -23,6 +23,7 @@ import WorkspaceContextReport from '@/components/WorkspaceContextReport';
 import SourceProfileTable from '@/components/SourceProfileTable';
 import SourceRelationshipPanel from '@/components/SourceRelationshipPanel';
 import WorkspaceQA from '@/components/WorkspaceQA';
+import ReportPanel from '@/components/ReportPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ interface ManifestCapabilities {
   hasSourceProfiles: boolean;
   hasWorkspaceContext: boolean;
   hasSourceRelationships: boolean;
+  hasReport: boolean;
 }
 
 interface ManifestSourceEntry {
@@ -328,6 +330,29 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         }}>
           <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>💬 Workspace Q&amp;A</h2>
           <WorkspaceQA workspaceId={workspace.id} analysisState={analysisState} />
+        </Card>
+      )}
+
+      {/* Workspace Report Export */}
+      {(analysisState === 'current' || analysisState === 'stale') && (
+        <Card style={{
+          padding: 20,
+          marginTop: 24,
+          opacity: analysisState === 'stale' ? 0.7 : 1,
+        }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📄 Workspace Report</h2>
+          <ReportPanel
+            workspaceId={workspace.id}
+            hasReport={hasArtifact('hasReport', 'workspace-report.md')}
+            generateAction={async () => {
+              'use server';
+              return generateReportAction(workspace.id);
+            }}
+            downloadAction={async () => {
+              'use server';
+              return downloadReportAction(workspace.id);
+            }}
+          />
         </Card>
       )}
     </div>

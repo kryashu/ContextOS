@@ -16,7 +16,7 @@ import {
   deleteSourceFile,
 } from '@/lib/workspaces';
 import { TableCalculator } from '@contextos/calculator';
-import { WorkspaceAnswerComposer, LocalRetriever } from '@contextos/qa';
+import { WorkspaceAnswerComposer, LocalRetriever, WorkspaceReportGenerator } from '@contextos/qa';
 import { getModelForTask, TaskType } from '@contextos/ai';
 import type { WorkspaceAnswer } from '@contextos/types';
 
@@ -302,5 +302,55 @@ export async function askWorkspaceQuestion(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, message: `Q&A failed: ${msg}` };
+  }
+}
+
+export async function generateReportAction(
+  workspaceId: string,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, message: 'Workspace not found.' };
+    }
+
+    const outputDir = getOutputDir(workspaceId);
+    const manifestPath = resolve(outputDir, 'analysis-manifest.json');
+    if (!existsSync(manifestPath)) {
+      return { success: false, message: 'No analysis found. Run analysis first.' };
+    }
+
+    const sourcesDir = getSourcesDir(workspaceId);
+    const generator = new WorkspaceReportGenerator(outputDir, sourcesDir);
+    const markdown = generator.generate();
+    writeFileSync(resolve(outputDir, 'workspace-report.md'), markdown);
+
+    return { success: true, message: 'Report generated.' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Report generation failed: ${msg}` };
+  }
+}
+
+export async function downloadReportAction(
+  workspaceId: string,
+): Promise<{ success: boolean; content?: string; message: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, message: 'Workspace not found.' };
+    }
+
+    const outputDir = getOutputDir(workspaceId);
+    const reportPath = resolve(outputDir, 'workspace-report.md');
+    if (!existsSync(reportPath)) {
+      return { success: false, message: 'No report found. Generate a report first.' };
+    }
+
+    const content = readFileSync(reportPath, 'utf-8');
+    return { success: true, content, message: 'OK' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Download failed: ${msg}` };
   }
 }
