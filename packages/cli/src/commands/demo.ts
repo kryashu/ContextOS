@@ -10,6 +10,7 @@ import { EntityExtractor } from '@contextos/extractor';
 import { RelationshipMapper, DFDGenerator } from '@contextos/generator';
 import { QualityDetector } from '@contextos/quality';
 import { SourceProfiler, WorkspaceContextBuilder } from '@contextos/profiler';
+import { WorkspaceReportGenerator } from '@contextos/qa';
 
 /**
  * AnalyzeCommand orchestrates the full analysis pipeline
@@ -124,6 +125,7 @@ export class AnalyzeCommand {
     });
     await this.writeExcelOutputs(workspacePath, sources);
     await this.writeExtractedText(workspacePath, sources);
+    await this.writeReport(workspacePath);
 
     // Step 10: Write analysis manifest
     console.log('Step 10: Writing analysis manifest...');
@@ -420,6 +422,15 @@ export class AnalyzeCommand {
     console.log(`  📝 Wrote extracted-text/ (${extractable.length} file${extractable.length > 1 ? 's' : ''})`);
   }
 
+  private async writeReport(workspacePath: string): Promise<void> {
+    const outputDir = path.join(workspacePath, 'output');
+    const sourcesDir = path.join(workspacePath, 'sources');
+    const generator = new WorkspaceReportGenerator(outputDir, sourcesDir);
+    const markdown = generator.generate();
+    await fs.writeFile(path.join(outputDir, 'workspace-report.md'), markdown);
+    console.log(`  📄 Wrote workspace-report.md`);
+  }
+
   private async writeManifest(
     workspacePath: string,
     workspace: { id: string; sources: Array<{ filePath: string; fileName: string }> },
@@ -454,6 +465,7 @@ export class AnalyzeCommand {
       'source-profiles.json',
       'workspace-context.json',
       'workspace-relationships.json',
+      'workspace-report.md',
     ];
     const existingArtifacts: string[] = [];
     for (const f of artifactFiles) {
@@ -477,6 +489,7 @@ export class AnalyzeCommand {
       hasSourceProfiles: existingArtifacts.includes('source-profiles.json'),
       hasWorkspaceContext: existingArtifacts.includes('workspace-context.json'),
       hasSourceRelationships: existingArtifacts.includes('workspace-relationships.json'),
+      hasReport: existingArtifacts.includes('workspace-report.md'),
     };
 
     const manifest: AnalysisManifest = {
