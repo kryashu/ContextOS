@@ -2,6 +2,8 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { createChatModel, type ModelOptions } from './model-factory.js';
 import { checkOllamaAvailability } from './utils.js';
 import { getConfig } from './config.js';
+import { getModelPolicy } from './model-policy.js';
+import { logModelCall } from './model-logger.js';
 
 /**
  * Task types for intelligent model routing
@@ -63,22 +65,27 @@ const TASK_CONFIGS: Record<TaskType, TaskConfig> = {
 /**
  * Get the appropriate model for a specific task
  * Implements intelligent routing based on task complexity and provider availability
+ *
+ * Returns null when the task can proceed without an LLM (e.g. classification
+ * with no provider configured and Ollama unavailable).
+ * Throws when the task requires an LLM but none is configured.
  */
 export async function getModelForTask(
   task: TaskType,
   options: Partial<ModelOptions> = {}
-): Promise<BaseChatModel> {
+): Promise<BaseChatModel | null> {
   const config = getConfig();
+  const policy = getModelPolicy(task);
 
-  // Short-circuit: mock mode bypasses all routing
+  // Short-circuit: mock mode (test environments only — guarded by config)
   if (config.provider === 'mock') {
-    console.log(`[TaskRouter] Using mock provider for ${task}`);
+    console.log(`[TaskRouter] Using test model for ${task}`);
+    logModelCall({ task, provider: 'mock', model: 'fake-list', estimatedInputTokens: 0, timestamp: new Date().toISOString() });
     return createChatModel('mock', { ...options, taskType: task });
   }
 
   const taskConfig = TASK_CONFIGS[task];
   const localProvider = config.localProvider;
-  const hostedProvider = config.provider;
   
   // For simple tasks (classification, summarization), prefer local Ollama if available
   if (taskConfig.preferLocal) {
@@ -86,21 +93,45 @@ export async function getModelForTask(
     
     if (ollamaAvailable) {
       console.log(`[TaskRouter] Using ${localProvider} for ${task} (local, fast)`);
+      logModelCall({ task, provider: localProvider, model: config.models.ollama, estimatedInputTokens: 0, timestamp: new Date().toISOString() });
       return createChatModel(localProvider, {
         ...options,
         modelName: config.models.ollama,
       });
     }
     
-    // If Ollama not available, fall back to hosted provider for simple tasks
-    console.log(`[TaskRouter] Ollama not available, using ${hostedProvider} for ${task}`);
-    return createChatModel(hostedProvider, options);
+    // Ollama not available — fall back to hosted provider if configured
+    if (!config.provider) {
+      if (policy.modelMode === 'required') {
+        throw new Error(
+          `[TaskRouter] Task "${task}" requires an LLM provider but LLM_PROVIDER is not configured.`
+        );
+      }
+      console.log(`[TaskRouter] No LLM provider configured and Ollama unavailable — skipping ${task}`);
+      return null;
+    }
+
+    console.log(`[TaskRouter] Ollama not available, using ${config.provider} for ${task}`);
+    logModelCall({ task, provider: config.provider, model: config.models[config.provider as keyof typeof config.models] ?? config.provider, estimatedInputTokens: 0, timestamp: new Date().toISOString() });
+    return createChatModel(config.provider, options);
   }
   
-  // For complex tasks (extraction, relationship mapping, artifact generation)
-  // Always use hosted provider (Gemini/Groq)
-  console.log(`[TaskRouter] Using ${hostedProvider} for ${task} (hosted, high quality)`);
-  return createChatModel(hostedProvider, options);
+  // For complex tasks (extraction, relationship mapping, artifact generation, QA)
+  // Require a hosted provider
+  if (!config.provider) {
+    if (policy.modelMode === 'optional') {
+      console.log(`[TaskRouter] No LLM provider configured — skipping optional ${task}`);
+      return null;
+    }
+    throw new Error(
+      `[TaskRouter] Task "${task}" requires an LLM provider but LLM_PROVIDER is not configured. ` +
+      `Set LLM_PROVIDER to a hosted provider (gemini, groq, openai).`
+    );
+  }
+
+  console.log(`[TaskRouter] Using ${config.provider} for ${task} (hosted, high quality)`);
+  logModelCall({ task, provider: config.provider, model: config.models[config.provider as keyof typeof config.models] ?? config.provider, estimatedInputTokens: 0, timestamp: new Date().toISOString() });
+  return createChatModel(config.provider, options);
 }
 
 /**
@@ -112,8 +143,9 @@ export function canFallbackForTask(
 ): boolean {
   const config = getConfig();
 
-  // No fallback in mock mode — mock never fails
-  if (config.provider === 'mock') return false;
+  // No fallback in mock mode — mock never fails.
+  // No fallback when provider is unset — nothing to fall back from.
+  if (!config.provider || config.provider === 'mock') return false;
 
   const taskCfg = TASK_CONFIGS[task];
   return (
@@ -132,8 +164,8 @@ export async function getFallbackModel(
 ): Promise<BaseChatModel | null> {
   const config = getConfig();
 
-  // No fallback in mock mode
-  if (config.provider === 'mock') return null;
+  // No fallback in mock mode or when provider is unset
+  if (!config.provider || config.provider === 'mock') return null;
 
   const taskCfg = TASK_CONFIGS[task];
   
