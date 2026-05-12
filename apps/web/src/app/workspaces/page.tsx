@@ -27,31 +27,6 @@ export default function WorkspacesPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-        {/* Pinned demo workspace */}
-        <Link
-          href="/workspaces/demo"
-          style={{ textDecoration: 'none', color: 'inherit' }}
-        >
-          <div style={{
-            border: '1px solid var(--color-border)',
-            borderRadius: 8,
-            padding: 20,
-            backgroundColor: 'var(--color-surface)',
-            cursor: 'pointer',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--color-fg)' }}>📁 checkout-system</h3>
-              <Badge color="#6e7681">demo</Badge>
-            </div>
-            <p style={{ margin: '0 0 12px', color: 'var(--color-muted)', fontSize: 13 }}>
-              Built-in demo workspace with sample files
-            </p>
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--color-muted)' }}>
-              <span>📄 4 sources</span>
-            </div>
-          </div>
-        </Link>
-
         {/* User workspaces */}
         {workspaces.map(ws => (
           <Link
@@ -89,7 +64,7 @@ export default function WorkspacesPage() {
 
       {workspaces.length === 0 && (
         <p style={{ color: 'var(--color-muted)', textAlign: 'center', marginTop: 32 }}>
-          No custom workspaces yet. Create one or explore the demo workspace above.
+          No workspaces yet. Create one to get started.
         </p>
       )}
     </div>

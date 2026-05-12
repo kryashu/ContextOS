@@ -126,7 +126,7 @@ export async function runWorkspaceAnalysis(
     // Clear stale output before running analysis
     clearOutputDir(workspaceId);
 
-    execFileSync('pnpm', ['contextos', 'demo', workspaceDir], {
+    execFileSync('pnpm', ['contextos', 'analyze', workspaceDir], {
       cwd: ROOT_DIR,
       stdio: 'pipe',
       timeout: 120_000,
@@ -221,9 +221,6 @@ export async function deleteWorkspaceAction(
   workspaceId: string,
 ): Promise<{ success: boolean; message: string }> {
   try {
-    if (workspaceId === 'demo') {
-      return { success: false, message: 'The demo workspace cannot be deleted.' };
-    }
     deleteWorkspace(workspaceId);
     return { success: true, message: 'Workspace deleted.' };
   } catch (err) {
@@ -237,9 +234,6 @@ export async function deleteSourceFileAction(
   fileName: string,
 ): Promise<{ success: boolean; message: string }> {
   try {
-    if (workspaceId === 'demo') {
-      return { success: false, message: 'Demo workspace files cannot be deleted.' };
-    }
     deleteSourceFile(workspaceId, fileName);
     return { success: true, message: `Deleted ${fileName}.` };
   } catch (err) {
@@ -296,8 +290,12 @@ export async function askWorkspaceQuestion(
 
     const sourcesDir = getSourcesDir(workspaceId);
     const retriever = new LocalRetriever(outputDir, sourcesDir);
-    const model = await getModelForTask(TaskType.QA);
-    const composer = new WorkspaceAnswerComposer(retriever, model);
+    const modelFactory = async () => {
+      const m = await getModelForTask(TaskType.QA);
+      if (!m) throw new Error('No LLM provider configured for Q&A.');
+      return m;
+    };
+    const composer = new WorkspaceAnswerComposer(retriever, undefined, modelFactory);
     const answer = await composer.answer(trimmed);
 
     return { success: true, answer, message: 'OK' };
