@@ -1,702 +1,469 @@
-# ContextOS - AI-Powered Workspace Intelligence Platform
+# ContextOS
 
-**Version:** 0.1.0 (Pre-MVP)  
-**Date:** May 6, 2026  
-**Status:** Architecture & Design Phase
+**Open-source workspace intelligence system.**
 
-## Overview
-
-ContextOS is an AI-powered Workspace Intelligence and Architecture Reasoning Platform designed to understand relationships across heterogeneous enterprise documents and systems. Unlike simple RAG applications, ContextOS builds a semantic knowledge graph, detects quality issues, and generates architecture artifacts through sophisticated agentic workflows.
-
-### What Makes ContextOS Different?
-
-This is **NOT**:
-- ❌ A chatbot
-- ❌ A simple RAG app
-- ❌ A NotebookLM clone
-- ❌ A Jira assistant
-
-This **IS**:
-- ✅ A workspace intelligence engine
-- ✅ A semantic system understanding platform
-- ✅ An architecture reasoning system
-- ✅ A knowledge relationship mapper
-
-### Key Capabilities
-
-- **Multi-Format Ingestion** - PDFs, DOCX, Excel, Confluence, Figma, APIs, Git repos
-- **Semantic Understanding** - Builds knowledge graph of entities and relationships
-- **Architecture Reasoning** - Identifies components, dependencies, trust boundaries
-- **Artifact Generation** - DFDs, C4 diagrams, ADRs, risk analyses
-- **Quality Intelligence** - Detects duplicates, stale docs, conflicts, gaps
-- **Source-Grounded Responses** - All AI answers cite original sources
+ContextOS analyzes collections of documents — Markdown, CSV, JSON, YAML, Excel workbooks — and builds a structured understanding of what they contain, how they relate, and where quality issues exist. It produces entity-relationship graphs, data flow diagrams, quality findings, and source-grounded answers to questions about your workspace.
 
 ---
 
-## Architecture Documentation
+## Table of Contents
 
-This repository contains comprehensive architecture and design documentation:
-
-### Core Architecture
-
-1. **[ARCHITECTURE.md](./ARCHITECTURE.md)** ⭐ **START HERE**
-   - High-level system architecture
-   - Technology stack and rationale
-   - Domain boundaries overview
-   - Data flow diagrams
-   - Scalability considerations
-   - Key architectural decisions (ADRs)
-
-2. **[MONOREPO_STRUCTURE.md](./MONOREPO_STRUCTURE.md)**
-   - Complete monorepo folder structure
-   - Package organization (pnpm workspaces + Turborepo)
-   - Dependency rules and conventions
-   - Build configuration
-   - Development workflow
-
-3. **[DOMAIN_BOUNDARIES.md](./DOMAIN_BOUNDARIES.md)**
-   - Detailed domain specifications
-   - Domain responsibilities and interfaces
-   - API contracts and events
-   - Communication patterns
-   - Domain interaction flows
-
-### Technical Design
-
-4. **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)**
-   - PostgreSQL + pgvector schema design
-   - All tables with indexes and constraints
-   - Migration strategy
-   - Performance optimization
-   - Backup and recovery
-
-5. **[AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md)**
-   - LangGraph.js workflow definitions
-   - Agent architecture and routing
-   - State management and persistence
-   - Tool definitions
-   - Observability and error handling
-
-### Planning & Operations
-
-6. **[ROADMAP.md](./ROADMAP.md)** ⭐ **IMPORTANT**
-   - MVP scope definition (what's in/out)
-   - Phase-wise implementation plan (16 weeks)
-   - Success criteria and metrics
-   - Resource requirements
-   - Post-MVP roadmap
-
-7. **[TECHNICAL_RISKS.md](./TECHNICAL_RISKS.md)**
-   - Comprehensive risk assessment
-   - Mitigation strategies
-   - Monitoring dashboards
-   - Incident response plan
-
-8. **[CODING_STANDARDS.md](./CODING_STANDARDS.md)**
-   - TypeScript best practices
-   - Naming conventions
-   - Error handling patterns
-   - Testing standards
-   - Code review checklist
+- [What ContextOS Is](#what-contextos-is)
+- [Why It Exists](#why-it-exists)
+- [What It Is Not](#what-it-is-not)
+- [Current Capabilities](#current-capabilities)
+- [Architecture Overview](#architecture-overview)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Running Analysis](#running-analysis)
+- [Environment Variables](#environment-variables)
+- [Output Artifacts](#output-artifacts)
+- [How It Differs from RAG / Chatbot Tools](#how-it-differs-from-rag--chatbot-tools)
+- [Current Status](#current-status)
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## Technology Stack
+## What ContextOS Is
 
-### Frontend
-- **Framework:** Next.js 15 (App Router, Server Components)
-- **Language:** TypeScript (strict mode)
-- **Styling:** Tailwind CSS
-- **State:** TanStack Query
-- **UI Components:** Custom + shadcn/ui
+ContextOS is a **workspace document analyzer**. Point it at a folder of documents and it will:
 
-### Backend
-- **Runtime:** Node.js 20+
-- **Language:** TypeScript
-- **AI Framework:** LangChain.js + LangGraph.js
-- **LLM:** Multi-provider support (Groq, Gemini, Ollama, OpenAI)
-  - Task-based routing: lightweight tasks → Ollama (local), complex reasoning → hosted LLMs
-  - Intelligent fallback with safeguards
+1. **Parse** every file (Markdown, CSV, JSON, YAML, XLSX)
+2. **Profile** each source — detect file kind, topics, relevance, warnings — deterministically, without an LLM
+3. **Classify** sources into categories (architecture, API docs, database schema, requirements, user flows, operations, structured data, irrelevant)
+4. **Extract entities** (actors, systems, processes, data stores, integrations) and **relationships** between them
+5. **Build a relationship graph** — merge duplicates, connect entities across files
+6. **Generate a Data Flow Diagram** (Mermaid Level 0) from the graph
+7. **Detect quality issues** — duplicate content, outdated documents, conflicting information
+8. **Map cross-source relationships** — which files support, contradict, or overlap with each other
+9. **Answer questions** about the workspace with source-grounded responses
 
-### Data Layer
-- **Primary Database:** PostgreSQL 16 + pgvector
-- **Cache/Queue:** Redis
-- **Graph DB:** Neo4j (optional, Phase 9+)
-
-### Infrastructure
-- **Monorepo:** pnpm workspaces + Turborepo
-- **Hosting:** Vercel (frontend) + Railway/Render (backend)
-- **Observability:** LangSmith, Sentry, Axiom
-- **CI/CD:** GitHub Actions
+All outputs cite their source files. Deterministic analysis runs without any LLM. Entity extraction and document-fact Q&A use an LLM only when needed.
 
 ---
 
-## LLM Provider Setup
+## Why It Exists
 
-ContextOS supports multiple LLM providers with intelligent task-based routing for optimal cost and performance.
+Enterprise teams accumulate documents across many formats — API specs, database schemas, deployment configs, meeting notes, spreadsheets. Understanding how these documents relate to each other, finding contradictions between them, and getting a coherent picture of the system they describe is manual, slow, and error-prone.
 
-### Recommended Setup (Hardware-Light)
-
-For running ContextOS with minimal hardware requirements (only ~4GB RAM for local models):
-
-**1. Install Ollama (local, free):**
-```bash
-brew install ollama
-ollama pull llama3.2:3b
-```
-
-**2. Get free Groq API key:**
-- Visit [https://console.groq.com](https://console.groq.com)
-- Sign up for free tier (14,400 requests/day)
-- Copy your API key
-
-**3. Configure environment:**
-```bash
-# Copy example config
-cp .env.example .env
-
-# Edit .env with your settings
-LLM_PROVIDER=groq
-LOCAL_LLM_PROVIDER=ollama
-ENABLE_LOCAL_FALLBACK=true
-GROQ_API_KEY=your_groq_key_here
-```
-
-### Task-Based Routing
-
-ContextOS automatically routes different tasks to the most appropriate model:
-
-| Task | Primary Provider | Fallback | Rationale |
-|------|-----------------|----------|-----------|
-| **Classification** | Ollama 3b (local) | None | Fast, simple pattern matching |
-| **Summarization** | Ollama 3b (local) | None | Lightweight, good quality |
-| **Entity Extraction** | Groq/Gemini (hosted) | Ollama 3b* | Complex reasoning needs hosted LLMs |
-| **Relationship Mapping** | Groq/Gemini (hosted) | None | Too complex for small models |
-| **Artifact Generation** | Groq/Gemini (hosted) | None | Requires structured reasoning |
-
-*Fallback only when `ENABLE_LOCAL_FALLBACK=true` and document < 50KB
-
-### Supported Providers
-
-**Groq** (Recommended)
-- Free tier: 14,400 requests/day
-- Model: llama-3.3-70b-versatile
-- Get key: [console.groq.com](https://console.groq.com)
-
-**Google Gemini** (Low Cost)
-- Model: gemini-1.5-flash
-- Get key: [aistudio.google.com](https://aistudio.google.com)
-
-**Ollama** (Local)
-- Model: llama3.2:3b (4GB RAM)
-- Free, runs offline
-- Install: `brew install ollama`
-
-**OpenAI** (Expensive)
-- Models: gpt-4o, gpt-4o-mini
-- Requires paid account
-- Get key: [platform.openai.com](https://platform.openai.com)
-
-### Intelligent Fallback
-
-When primary hosted LLM fails (quota exceeded, rate limit), ContextOS can automatically fall back to local Ollama:
-
-**Fallback Conditions:**
-- `ENABLE_LOCAL_FALLBACK=true`
-- Ollama is running locally
-- Document size < 50KB (configurable)
-- Task supports fallback (classification, summarization, extraction)
-
-**Safeguards:**
-- Content truncation to 8K tokens
-- Warning logs for quality expectations
-- Skip fallback for complex tasks (relationship mapping, artifact generation)
-
-**Quality Impact:**
-- Fallback results may have 10-20% lower accuracy
-- Suitable for development and cost-sensitive deployments
-- Not recommended for production entity extraction
-
-### Configuration Reference
-
-See [`.env.example`](./.env.example) for complete configuration options including:
-- Provider selection (`LLM_PROVIDER`, `LOCAL_LLM_PROVIDER`)
-- Model customization (`GROQ_MODEL`, `GEMINI_MODEL`, `OLLAMA_MODEL`)
-- Fallback settings (`ENABLE_LOCAL_FALLBACK`, `LOCAL_FALLBACK_MAX_SIZE_KB`)
-- API keys for all providers
+ContextOS automates that understanding. It is built for engineers and architects who need to reason across a body of documents, not just search within one.
 
 ---
 
-## Project Principles
+## What It Is Not
 
-### Architectural Principles
-
-1. **Spec-Driven Development** - Every module begins with a specification
-2. **Modular Monolith** - Single deployable with clear internal boundaries
-3. **Domain-Oriented Design** - Organized by business capability
-4. **Event-Driven Internals** - Loose coupling through domain events
-5. **Strong Typing** - TypeScript strict mode everywhere
-6. **Source-Grounded AI** - All responses cite original sources
-7. **Table Intelligence** - Structured data as first-class entities
-8. **Human-in-the-Loop** - Critical artifacts require approval
-9. **Production-Grade from Day One** - Observability, testing, error handling
-
-### Engineering Principles
-
-1. **Clarity over Cleverness**
-2. **Type Safety First**
-3. **Fail Fast**
-4. **Domain Language**
-5. **SOLID Principles**
-6. **Test What Matters**
-7. **Document Why, Not What**
-8. **Performance Second** (optimize after profiling)
+- **Not a chatbot.** It answers questions grounded in workspace documents, but its primary output is structured analysis, not conversation.
+- **Not a RAG application.** There is no vector database or embedding-based retrieval in the current implementation. Retrieval uses file-system-based context loading.
+- **Not a NotebookLM clone.** ContextOS focuses on entity extraction, relationship mapping, and quality detection — not summarization or podcast generation.
+- **Not a code analysis tool.** It analyzes documentation and data files, not source code.
 
 ---
 
-## Domain Architecture
+## Current Capabilities
 
-ContextOS is organized into 6 core domains:
+Everything listed below is implemented and working.
 
-### 1. Ingestion Domain
-**Responsibility:** Transform external documents into structured, searchable knowledge
+### Parsing
+- Markdown, CSV, JSON, YAML, plain text, Excel (`.xlsx`)
+- Figma JSON and Confluence JSON (structural parsing)
+- Pluggable parser registry — new formats can be added
 
-**Key Components:**
-- Connector Registry (PDF, DOCX, Excel, Confluence, Figma, MCP)
-- Content Extractors
-- Semantic Chunking Engine
-- Embedding Pipeline
-- Table Extractor
-- Initial Graph Builder
+### Profiling (deterministic, no LLM)
+- File kind detection (document, workbook, data, config, notes)
+- Topic extraction from content
+- Entity detection from headings and structure
+- Relevance scoring
+- Warning detection (empty files, very short content)
 
-### 2. Retrieval Domain
-**Responsibility:** Find relevant information across the knowledge base
+### Classification
+- Rule-based fast path for unambiguous files
+- LLM fallback for ambiguous cases (when a provider is configured)
+- Categories: architecture, api_documentation, database_schema, requirements, user_flow, operations, code, meeting_notes, structured_data, irrelevant
 
-**Key Components:**
-- Semantic Search (pgvector)
-- Hybrid Retrieval (semantic + keyword)
-- Reranker
-- Multi-hop Retrieval
-- Table Query Engine
-- Query Cache Manager
+### Entity & Relationship Extraction (LLM-based)
+- Entity types: actor, system, process, data_store, external_integration, business_entity, endpoint, event
+- Relationship types: uses, calls, stores_in, reads_from, writes_to, integrates_with, triggers, publishes, subscribes_to, contains, depends_on, manages, implements
+- Structured output validated with Zod schemas
+- Confidence scores on all extractions
 
-### 3. Reasoning Domain
-**Responsibility:** Understand, analyze, and synthesize information
+### Graph & Diagram Generation
+- Entity merging (deduplication across sources)
+- Relationship merging
+- In-memory relationship graph (nodes + edges with source references)
+- Mermaid Data Flow Diagram (Level 0) generation
 
-**Key Components:**
-- Architecture Analyzer
-- Relationship Inference
-- Contradiction Detector
-- Entity Resolver
-- Artifact Generator (DFDs, C4, ADRs)
-- Risk Analyzer
+### Quality Detection
+- Duplicate source detection (content similarity)
+- Outdated document detection
+- Conflict detection across sources
 
-### 4. Orchestration Domain
-**Responsibility:** Coordinate multi-step agentic workflows
+### Cross-Source Relationship Mapping
+- Deterministic mapping of how files relate to each other
+- Support, contradiction, and overlap detection between sources
 
-**Key Components:**
-- Agent Router
-- Workflow Engine (LangGraph)
-- State Manager
-- Tool Registry
-- Approval Gateway
+### Workspace Q&A
+- Intent-based question routing (deterministic classifier)
+- Deterministic answers for: workspace overview, irrelevant files, capabilities, source relationships, sheet queries
+- LLM-grounded answers for document fact questions (requires configured provider)
+- All answers include source references
 
-### 5. Knowledge Graph Domain
-**Responsibility:** Build and maintain semantic relationship graph
+### Workbook / Structured Data Analysis
+- Excel workbook profiling (sheet structure, candidate metrics)
+- Data normalization from spreadsheet observations
+- Metric calculation with filtering (aggregation over structured data)
 
-**Key Components:**
-- Entity Extractor
-- Relationship Mapper
-- Graph Store
-- Trust Boundary Detector
-- Temporal Tracker
+### Web UI
+- Create and manage workspaces
+- Upload files (drag-and-drop, validated extensions and size limits)
+- Run analysis from the browser
+- View all output artifacts: DFD diagrams (rendered Mermaid), entity tables, quality findings, source profiles, workspace context
+- Ask questions about a workspace (interactive Q&A panel)
+- Calculation panel for structured data (filter + aggregate)
+- Stale analysis detection (hash-based cache invalidation)
 
-### 6. Quality Domain
-**Responsibility:** Ensure workspace hygiene and data quality
+### CLI
+- `contextos analyze <path>` — run the full analysis pipeline
+- `contextos ai:check` — verify LLM provider health and connectivity
+- `contextos eval <test-name>` — run automated evaluation against expected outputs
+- `contextos config:print` — display resolved configuration (secrets redacted)
 
-**Key Components:**
-- Duplicate Detector
-- Staleness Analyzer
-- Conflict Detector
-- Relevance Scorer
-- Coverage Analyzer
+### Multi-Provider AI
+- Supported providers: Groq, Google Gemini, Ollama (local), OpenAI, Mock (testing)
+- Task-based routing: lightweight tasks (classification, summarization) prefer local Ollama; complex tasks (extraction, relationship mapping) use hosted providers
+- Automatic fallback from hosted to local Ollama (configurable, with size guards)
+- Deterministic flows work with no LLM configured at all
 
----
-
-## MVP Scope (Phases 0-5, 16 weeks)
-
-### ✅ What's IN
-
-- ✅ PDF, DOCX, Markdown ingestion
-- ✅ Semantic + hybrid search
-- ✅ Query interface with streaming responses
-- ✅ Source attribution
-- ✅ Component identification
-- ✅ Basic dependency mapping
-- ✅ DFD and C4 (system level) generation
-- ✅ Duplicate detection
-- ✅ Quality scoring
-- ✅ Single-user workspaces
-- ✅ Modern responsive UI
-
-### ❌ What's OUT (Post-MVP)
-
-- ❌ Excel/CSV structured data (Phase 6)
-- ❌ Confluence/Figma integrations (Phase 7)
-- ❌ Multi-user collaboration (Phase 8)
-- ❌ Advanced graph queries (Phase 9)
-- ❌ ADR generation, risk analysis (Phase 10)
-- ❌ Enterprise features (SSO, RBAC) (Phase 11)
+### Evaluation Framework
+- Automated scoring against expected outputs
+- Metrics: entity recall, relationship recall, finding detection, irrelevant detection, Mermaid validity, source references, schema validity
+- Weighted composite score with configurable pass threshold
 
 ---
 
-## MVP Timeline
+## Architecture Overview
+
+ContextOS is a TypeScript monorepo organized by domain. Each domain is an independent package with its own types, tests, and public API.
 
 ```
-Phase 0: Foundation (Weeks 1-2)
-  └─ Setup monorepo, database, base packages
-
-Phase 1: Core Ingestion (Weeks 3-5)
-  └─ Document upload, extraction, embedding
-
-Phase 2: Query & Retrieval (Weeks 6-8)
-  └─ Semantic search, query interface, streaming
-
-Phase 3: Architecture Analysis (Weeks 9-11)
-  └─ Component identification, artifact generation
-
-Phase 4: Quality & Polish (Weeks 12-14)
-  └─ Duplicate detection, testing, documentation
-
-Phase 5: Beta & Iteration (Weeks 15-16)
-  └─ User testing, feedback, production prep
-
-──────────────────────────────────────────
-Total: 16 weeks (~4 months to MVP)
+contextos/
+├── apps/
+│   └── web/                    # Next.js web application
+├── packages/
+│   ├── ai/                     # Multi-provider LLM layer (routing, fallback, config)
+│   ├── cli/                    # Command-line interface
+│   ├── shared/
+│   │   ├── types/              # Domain type definitions
+│   │   └── ui/                 # Shared UI components
+│   └── domains/
+│       ├── parsers/            # File format parsers (MD, CSV, JSON, XLSX, etc.)
+│       ├── profiler/           # Deterministic source profiling
+│       ├── classifier/         # Source classification (rule-based + LLM)
+│       ├── extractor/          # LLM-based entity & relationship extraction
+│       ├── generator/          # Relationship graph + DFD generation
+│       ├── relationships/      # Cross-source relationship mapping
+│       ├── quality/            # Quality issue detection
+│       ├── qa/                 # Question routing + answer composition
+│       └── calculator/         # Structured data calculations
+├── data/workspaces/            # User workspaces (file-system storage)
+└── evals/                      # Evaluation test fixtures
 ```
+
+### Analysis Pipeline
+
+```
+Files → Parse → Profile → Classify → Extract Entities → Build Graph
+                                                            │
+                                    ┌───────────────────────┤
+                                    ▼                       ▼
+                              Generate DFD          Detect Quality Issues
+                                    │                       │
+                                    └───────┬───────────────┘
+                                            ▼
+                                      Write Outputs
+```
+
+Profiling is always deterministic. Classification uses rules first, LLM only when ambiguous. Entity extraction and document-fact Q&A require an LLM. Everything else is deterministic.
 
 ---
 
-## Success Criteria
+## Tech Stack
 
-### Technical Metrics
-- Query response time: p95 < 3s
-- Document ingestion: < 30s for typical PDF
-- System uptime: > 95% (MVP)
-- Test coverage: > 70%
-
-### Business Metrics
-- 10+ test workspaces
-- 100+ documents ingested
-- 500+ queries answered
-- 20+ architecture diagrams generated
-- User satisfaction: 80%+ positive
-
----
-
-## Current Status: Vertical Slice 001
-
-Vertical Slice 001 is implemented and working: a complete end-to-end demo that processes a workspace, extracts entities and relationships, generates artifacts, and detects quality issues.
-
-### What's Working
-
-- ✅ Multi-format parsing (Markdown, CSV, JSON)
-- ✅ Document classification
-- ✅ Entity and relationship extraction using LLMs
-- ✅ Relationship graph generation
-- ✅ Data Flow Diagram (DFD) generation (Mermaid format)
-- ✅ Quality issue detection (duplicates, outdated docs, conflicts)
-- ✅ Multi-provider LLM support (Groq, Gemini, Ollama, OpenAI, Mock)
-- ✅ Task-based routing and intelligent fallback
-- ✅ Provider health checking and validation
-- ✅ Evaluation system with quality metrics
-
-### Running the Demo
-
-**Prerequisites:**
-```bash
-Node.js >= 20
-pnpm >= 8
-```
-
-**Setup:**
-```bash
-# Install dependencies
-pnpm install
-
-# Build packages
-pnpm build
-
-# Configure LLM provider (choose one)
-# Option 1: Use mock provider (no API key needed)
-set -x LLM_PROVIDER mock
-
-# Option 2: Use Groq (free tier)
-set -x LLM_PROVIDER groq
-set -x GROQ_API_KEY your_api_key_here
-
-# Option 3: Use Gemini
-set -x LLM_PROVIDER gemini
-set -x GOOGLE_API_KEY your_api_key_here
-```
-
-**Run Demo:**
-```bash
-# Run on demo workspace (checkout-system)
-pnpm contextos demo ./demo-workspaces/checkout-system
-
-# Output will be written to:
-# demo-workspaces/checkout-system/output/
-```
-
-### Provider Health Check
-
-Validate that your LLM providers are configured correctly:
-
-```bash
-# Check all configured providers
-set -x LLM_PROVIDER mock  # or groq, gemini, etc.
-pnpm contextos ai:check
-
-# Output:
-# ✅ Shows which providers are working
-# ✅ Tests structured output capability
-# ✅ Measures response latency
-# ✅ Generates ai-provider-report.json
-```
-
-**Example output:**
-```
-🔍 ContextOS AI Provider Health Check
-
-Provider Status:
-────────────────────────────────────────────────────────────
-✅ mock       fake-list-chat-model (1ms)
-⊝ ollama     LOCAL_LLM_PROVIDER not set to ollama
-⊝ groq       GROQ_API_KEY not configured
-⊝ gemini     GOOGLE_API_KEY/GEMINI_API_KEY not configured
-────────────────────────────────────────────────────────────
-
-📊 Report saved to ai-provider-report.json
-```
-
-### Evaluation System
-
-Run automated quality checks on the demo outputs:
-
-```bash
-# Run Vertical Slice 001 evaluation
-pnpm contextos eval vertical-slice-001
-
-# This will:
-# 1. Run demo on checkout-system workspace
-# 2. Load expected outputs from evals/vertical-slice-001.expected.json
-# 3. Calculate 7 quality metrics:
-#    - Entity Recall (25%)
-#    - Relationship Recall (25%)
-#    - Finding Detection (15%)
-#    - Irrelevant Detection (10%)
-#    - Mermaid Validity (10%)
-#    - Source References (10%)
-#    - Schema Validity (5%)
-# 4. Generate eval-report.json with weighted score
-# 5. Exit with error if score < 70%
-```
-
-**Example output:**
-```
-Evaluation Results:
-═══════════════════════════════════════════════════════════
-✅ Entity Recall              100.0%
-✅ Relationship Recall         100.0%
-✅ Finding Detection           100.0%
-✅ Irrelevant Detection        100.0%
-✅ Mermaid Validity            100.0%
-✅ Source References            95.0%
-✅ Schema Validity             100.0%
-═══════════════════════════════════════════════════════════
-✅ Total Score: 98.5% (threshold: 70%)
-```
-
-### Demo Output Files
-
-The demo generates 4 output files in `<workspace>/output/`:
-
-1. **workspace-summary.json** - High-level workspace analysis
-   - Total sources, entities, relationships
-   - Statistics by type and category
-   - Quality metrics
-
-2. **relationship-graph.json** - Full entity relationship graph
-   - All extracted entities with metadata
-   - All relationships between entities
-   - Source references for traceability
-
-3. **findings.json** - Quality issues detected
-   - Duplicate sources
-   - Outdated documents
-   - Conflicting information
-   - Missing dependencies
-
-4. **dfd-level-0.mmd** - Data Flow Diagram (Mermaid syntax)
-   - Actors, processes, data stores
-   - Data flows between components
-   - External systems
-
-### Known Limitations
-
-- **OpenAI requires paid account** - Free tier has zero quota
-- **Groq free tier variability** - 14,400 requests/day but can be rate-limited during peak times
-- **Ollama fallback quality** - 10-20% lower accuracy for complex extraction tasks
-- **Mock provider** - Returns deterministic test data, not real LLM responses
-- **Single workspace only** - No multi-workspace support yet
-- **No persistence** - Outputs are files, not stored in database
-
-### Next Steps
-
-See [ROADMAP.md](./ROADMAP.md) for the full MVP implementation plan (16 weeks):
-- Phase 2: Web UI with document upload
-- Phase 3: PostgreSQL + pgvector integration
-- Phase 4: Agentic workflows with LangGraph
-- Phase 5: Architecture reasoning and artifact generation
-- And more...
+| Layer | Technology |
+|-------|-----------|
+| **Language** | TypeScript (strict mode) |
+| **Runtime** | Node.js 20+ |
+| **Monorepo** | pnpm workspaces + Turborepo |
+| **Web App** | Next.js 14 (App Router, Server Components, Server Actions) |
+| **UI** | React 18, Mermaid (diagram rendering) |
+| **AI Framework** | LangChain.js |
+| **Validation** | Zod (LLM structured outputs + runtime validation) |
+| **Testing** | Vitest |
+| **Storage** | File system (no database required) |
 
 ---
 
-## Getting Started (Future)
+## Getting Started
 
 ### Prerequisites
-```bash
-Node.js >= 20
-pnpm >= 8
-PostgreSQL >= 16 (with pgvector)
-Redis >= 7
-```
 
-### Setup
-```bash
-# Clone repository
-git clone https://github.com/your-org/contextos.git
-cd contextos
+- Node.js 20+
+- pnpm 8+
+- (Optional) Ollama for local LLM
+- (Optional) API key for Groq, Gemini, or OpenAI
 
-# Install dependencies
+### Install and Build
+
+```bash
+git clone https://github.com/kryashu/ContextOS.git
+cd ContextOS
+
 pnpm install
-
-# Setup environment
-cp .env.example .env
-# Configure LLM providers (see "LLM Provider Setup" section above)
-# Recommended: GROQ_API_KEY for hosted + Ollama for local
-# Also configure: DATABASE_URL, REDIS_URL
-
-# Setup database
-pnpm db:migrate
-pnpm db:seed
-
-# Start development
-pnpm dev
+pnpm build
 ```
 
-### Development
+### Configure LLM (optional)
+
+Deterministic analysis (parsing, profiling, graph building, quality detection) works without any LLM. To enable entity extraction and document-fact Q&A, configure a provider:
+
 ```bash
-# Run all apps
-pnpm dev
+cp .env.example .env
+```
 
-# Run specific app
-pnpm --filter @contextos/web dev
+Edit `.env`:
 
-# Run tests
-pnpm test
+```bash
+# Option 1: Groq (recommended, free tier)
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_key_here
 
-# Type check
-pnpm type-check
+# Option 2: Google Gemini
+LLM_PROVIDER=gemini
+GOOGLE_API_KEY=your_key_here
 
-# Lint
-pnpm lint
+# Option 3: Local Ollama (no API key needed)
+LLM_PROVIDER=ollama
+LOCAL_LLM_PROVIDER=ollama
+
+# Option 4: No LLM — deterministic flows only
+# Leave LLM_PROVIDER unset
+```
+
+### Verify Setup
+
+```bash
+# Check which providers are available
+pnpm contextos ai:check
+
+# Show resolved configuration
+pnpm contextos config:print
 ```
 
 ---
 
-## Team Structure
+## Running Analysis
 
-### MVP Team (Recommended)
-- **2-3 Full-Stack Engineers** (backend-focused)
-- **1 Frontend Engineer** (Next.js/React)
-- **1 AI/ML Engineer** (LangChain, LLMs)
-- **1 Product Manager** (part-time)
-- **1 Designer** (part-time)
+### From the CLI
+
+```bash
+# Analyze any folder of documents
+pnpm contextos analyze <workspace-path>
+
+# Example: analyze the included demo workspace
+pnpm contextos analyze demo-workspaces/checkout-system
+```
+
+Outputs are written to `<workspace-path>/output/`.
+
+### From the Web UI
+
+```bash
+# Start the development server
+pnpm dev
+
+# Open http://localhost:3000
+```
+
+In the web UI:
+1. Create a workspace
+2. Upload files (Markdown, CSV, JSON, YAML, XLSX — up to 10 MB each, 50 files max)
+3. Click **Run Analysis**
+4. View results: DFD diagram, entity table, quality findings, source profiles
+5. Ask questions in the Q&A panel
+
+### Running Evaluations
+
+```bash
+# Run automated quality evaluation against expected outputs
+pnpm contextos eval vertical-slice-001
+```
+
+This runs the analysis pipeline on the demo workspace and scores the output against expected entities, relationships, and findings. Exits with an error if the weighted score falls below 70%.
 
 ---
 
-## Key Risks & Mitigations
+## Environment Variables
 
-### P0 Critical Risks
-1. **LLM API Cost Explosion**
-   - Mitigation: Aggressive caching, rate limiting, budget monitoring
+All configuration is via environment variables. See [`.env.example`](./.env.example) for the full reference.
 
-2. **Vector Search Performance Degradation**
-   - Mitigation: Early profiling, index optimization, migration path to dedicated vector DB
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `LLM_PROVIDER` | No | _(unset)_ | Primary LLM provider: `groq`, `gemini`, `openai`, `ollama` |
+| `LOCAL_LLM_PROVIDER` | No | `ollama` | Local provider for lightweight tasks |
+| `ENABLE_LOCAL_FALLBACK` | No | `false` | Fall back to Ollama when hosted provider fails |
+| `LOCAL_FALLBACK_MAX_SIZE_KB` | No | `50` | Max document size (KB) for Ollama fallback |
+| `GROQ_API_KEY` | If using Groq | — | Groq API key ([console.groq.com](https://console.groq.com)) |
+| `GOOGLE_API_KEY` | If using Gemini | — | Google AI API key ([aistudio.google.com](https://aistudio.google.com)) |
+| `OPENAI_API_KEY` | If using OpenAI | — | OpenAI API key |
+| `OLLAMA_MODEL` | No | `llama3.2:3b` | Ollama model name |
+| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Groq model name |
+| `GEMINI_MODEL` | No | `gemini-1.5-flash` | Gemini model name |
+| `OPENAI_MODEL` | No | `gpt-4o-mini` | OpenAI model name |
 
-3. **Data Quality Issues**
-   - Mitigation: Extraction validation, source attribution, user feedback loop
+### Task-Based Model Routing
 
-See [TECHNICAL_RISKS.md](./TECHNICAL_RISKS.md) for full risk analysis.
+| Task | Default Provider | Fallback | Notes |
+|------|-----------------|----------|-------|
+| Classification | Ollama (local) | — | Rule-based first; LLM only for ambiguous cases |
+| Summarization | Ollama (local) | — | Lightweight |
+| Entity Extraction | Hosted (Groq/Gemini) | Ollama* | Complex structured output |
+| Relationship Mapping | Hosted (Groq/Gemini) | — | Too complex for small local models |
+| Artifact Generation | Hosted (Groq/Gemini) | — | Requires structured reasoning |
+| Q&A | Hosted (Groq/Gemini) | Ollama* | Document fact questions only |
+
+\*Fallback requires `ENABLE_LOCAL_FALLBACK=true` and document < 50 KB.
 
 ---
 
-## Documentation Status
+## Output Artifacts
 
-| Document | Status | Owner | Last Updated |
-|----------|--------|-------|--------------|
-| ARCHITECTURE.md | ✅ Complete | Architecture Team | May 6, 2026 |
-| MONOREPO_STRUCTURE.md | ✅ Complete | Backend Lead | May 6, 2026 |
-| DOMAIN_BOUNDARIES.md | ✅ Complete | Architecture Team | May 6, 2026 |
-| DATABASE_SCHEMA.md | ✅ Complete | Backend Team | May 6, 2026 |
-| AGENT_ORCHESTRATION.md | ✅ Complete | AI/ML Team | May 6, 2026 |
-| ROADMAP.md | ✅ Complete | Product/Engineering | May 6, 2026 |
-| TECHNICAL_RISKS.md | ✅ Complete | CTO/Engineering Mgr | May 6, 2026 |
-| CODING_STANDARDS.md | ✅ Complete | Engineering Mgr | May 6, 2026 |
+Analysis produces the following files in `<workspace>/output/`:
+
+| File | Description |
+|------|-------------|
+| `analysis-manifest.json` | Manifest of what was produced, source file hashes, capabilities flags |
+| `workspace-summary.json` | Source count, entity/relationship counts, statistics by type and category |
+| `source-profiles.json` | Per-file profile: kind, topics, entities, relevance score, warnings |
+| `workspace-context.json` | Aggregated workspace theme, key topics, file type distribution |
+| `relationship-graph.json` | All entities and relationships as nodes and edges with source references |
+| `workspace-relationships.json` | Cross-source relationship map (which files relate to which) |
+| `dfd-level-0.mmd` | Mermaid Data Flow Diagram (Level 0 context diagram) |
+| `findings.json` | Quality issues: duplicates, outdated docs, conflicts |
+| `workbook-profile.json` | _(Excel workspaces only)_ Sheet structure and candidate metrics |
+| `normalized-observations.json` | _(Excel workspaces only)_ Normalized data rows for calculation |
 
 ---
 
-## Next Steps
+## How It Differs from RAG / Chatbot Tools
 
-### Immediate (Week 1)
-1. ✅ Finalize architecture documents (DONE)
-2. ⏳ Recruit team
-3. ⏳ Set up project management (Linear/Jira)
-4. ⏳ Initialize repository
-5. ⏳ Set up development environment
+| Aspect | Typical RAG App | ContextOS |
+|--------|----------------|-----------|
+| **Primary output** | Chat responses | Structured analysis artifacts (graphs, diagrams, findings) |
+| **Retrieval** | Embedding similarity search | File-system context loading; deterministic profiling |
+| **LLM dependency** | Required for everything | Used only for entity extraction and ambiguous classification; most analysis is deterministic |
+| **Document relationships** | Not modeled | Explicitly extracted and mapped across sources |
+| **Quality detection** | Not addressed | Duplicates, conflicts, outdated content detected automatically |
+| **Source grounding** | Optional citations | Every factual answer and every extracted entity traces back to a source file |
+| **Structured data** | Treated as text | Excel workbooks profiled, normalized, and queryable with calculations |
 
-### Week 2
-- Begin Phase 0: Foundation
-- Complete infrastructure setup
-- Scaffold base packages
+---
 
-### Ongoing
-- Weekly team sync
-- Bi-weekly stakeholder demo
-- Monthly roadmap review
+## Current Status
+
+**Version:** 0.1.0  
+**Status:** Working vertical slice with CLI and Web UI.
+
+The core analysis pipeline is implemented and produces real outputs. The system is file-system-based — no database, no vector store, no deployment infrastructure. It is a working tool, not a production platform yet.
+
+### What Works Today
+- Full analysis pipeline (CLI and Web UI)
+- Multi-format parsing and deterministic profiling
+- LLM-based entity extraction with structured output validation
+- Relationship graph and DFD generation
+- Quality issue detection
+- Workspace Q&A with intent routing
+- Workbook analysis and calculation
+- Multi-provider LLM support with task routing and fallback
+- Automated evaluation framework
+
+### Known Limitations
+- File-system storage only (no database)
+- No authentication or multi-user support
+- No vector embeddings or semantic search
+- No PDF or DOCX parsing (only Markdown, CSV, JSON, YAML, XLSX)
+- Single-process, single-machine
+- OpenAI requires a paid account; Groq free tier can be rate-limited during peak usage
+
+---
+
+## Roadmap
+
+These features are **not implemented** yet. They represent the planned direction.
+
+### Near-Term
+- PDF and DOCX parsing support
+- PostgreSQL + pgvector for persistent storage and vector search
+- Semantic search and hybrid retrieval (vector + keyword)
+- LLM response caching (reduce API costs)
+- C4 diagram generation (system context level)
+
+### Medium-Term
+- LangGraph.js agent workflows for multi-step reasoning
+- Human-in-the-loop approval gates for generated artifacts
+- ADR (Architecture Decision Record) generation
+- Reranking (cross-encoder) for search results
+- Multi-hop retrieval (follow relationships for deeper context)
+- Confluence and Figma live integrations
+- LangSmith observability integration
+
+### Long-Term
+- Multi-user workspaces with collaboration
+- Authentication and RBAC
+- Neo4j graph database for advanced graph queries
+- Scheduled re-ingestion and change detection
+- API access and webhooks
+- Enterprise features (SSO, audit logs)
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture and domain boundaries (design target) |
+| [MONOREPO_STRUCTURE.md](./MONOREPO_STRUCTURE.md) | Package organization and build configuration |
+| [DOMAIN_BOUNDARIES.md](./DOMAIN_BOUNDARIES.md) | Domain responsibilities, interfaces, and events (design target) |
+| [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | PostgreSQL schema design (not yet implemented) |
+| [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md) | LangGraph agent workflows (not yet implemented) |
+| [ROADMAP.md](./ROADMAP.md) | Implementation phases and scope |
+| [TECHNICAL_RISKS.md](./TECHNICAL_RISKS.md) | Risk assessment and mitigations |
+| [CODING_STANDARDS.md](./CODING_STANDARDS.md) | TypeScript conventions and patterns |
+
+> **Note:** ARCHITECTURE.md, DOMAIN_BOUNDARIES.md, DATABASE_SCHEMA.md, and AGENT_ORCHESTRATION.md describe the full design target. Not all described components are implemented yet. See [Current Status](#current-status) for what exists today.
 
 ---
 
 ## Contributing
 
-(To be added once repository is initialized)
+Contributions are welcome. To get started:
+
+```bash
+git clone https://github.com/kryashu/ContextOS.git
+cd ContextOS
+pnpm install
+pnpm build
+pnpm test
+```
+
+The codebase uses TypeScript strict mode, Vitest for testing, and Turborepo for build orchestration. Each domain package under `packages/domains/` is independently buildable and testable.
 
 ---
 
 ## License
 
-(To be determined)
-
----
-
-## Contact
-
-For questions about this architecture, contact:
-- **Architecture Team Lead:** [Name]
-- **Engineering Manager:** [Name]
-- **Product Manager:** [Name]
+MIT
 
 ---
 
