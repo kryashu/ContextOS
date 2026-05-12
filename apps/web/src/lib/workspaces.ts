@@ -130,6 +130,8 @@ function detectFileType(fileName: string): string {
   if (fileName.endsWith('.csv')) return 'csv';
   if (fileName.endsWith('.json')) return 'json';
   if (fileName.endsWith('.xlsx')) return 'xlsx';
+  if (fileName.endsWith('.pdf')) return 'pdf';
+  if (fileName.endsWith('.docx')) return 'docx';
   if (fileName.endsWith('.txt')) return 'text';
   if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) return 'yaml';
   if (fileName.includes('.figma.')) return 'figma';

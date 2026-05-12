@@ -52,14 +52,14 @@ export default function FileUpload({ workspaceId }: Props) {
         <input
           type="file"
           multiple
-          accept=".md,.csv,.json,.txt,.yaml,.yml,.xlsx"
+          accept=".md,.csv,.json,.txt,.yaml,.yml,.xlsx,.pdf,.docx"
           onChange={handleChange}
           disabled={isPending}
           style={{ display: 'none' }}
         />
       </label>
       <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--color-muted)' }}>
-        .md, .csv, .json, .txt, .yaml, .yml — max 5MB each
+        .md, .csv, .json, .txt, .yaml, .yml, .pdf, .docx — max 5MB each
       </span>
       {result && (
         <p style={{

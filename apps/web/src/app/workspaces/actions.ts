@@ -23,7 +23,7 @@ import type { WorkspaceAnswer } from '@contextos/types';
 /** Monorepo root — apps/web -> apps -> root */
 const ROOT_DIR = resolve(process.cwd(), '..', '..');
 
-const ALLOWED_EXTENSIONS = ['.md', '.csv', '.json', '.txt', '.yaml', '.yml', '.xlsx'];
+const ALLOWED_EXTENSIONS = ['.md', '.csv', '.json', '.txt', '.yaml', '.yml', '.xlsx', '.pdf', '.docx'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (xlsx can be larger)
 const MAX_FILES = 50;
 
