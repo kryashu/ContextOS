@@ -68,4 +68,27 @@ describe('LocalRetriever', () => {
     const retriever = new LocalRetriever(outputDir, sourcesDir);
     expect(retriever.searchSourceFiles('clinical')).toEqual([]);
   });
+
+  it('returns null when workspace-relationships.json is missing', () => {
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    expect(retriever.loadWorkspaceRelationships()).toBeNull();
+  });
+
+  it('loads workspace-relationships.json when present', () => {
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'a.md', sourceB: 'b.md', type: 'shared_topic', confidence: 0.8, evidence: ['Shared topics: pumps'] },
+        ],
+      }),
+    );
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const relMap = retriever.loadWorkspaceRelationships();
+    expect(relMap).not.toBeNull();
+    expect(relMap!.relationships).toHaveLength(1);
+    expect(relMap!.relationships[0]!.type).toBe('shared_topic');
+  });
 });

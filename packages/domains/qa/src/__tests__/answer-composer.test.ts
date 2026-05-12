@@ -204,4 +204,111 @@ describe('WorkspaceAnswerComposer', () => {
     expect(result.intent).toBe('about');
     expect(result.answer).toContain('testing');
   });
+
+  // ── source_relationships intent (VS007.1) ───────────────────────
+
+  it('answers "Which files are related?" from workspace-relationships.json', async () => {
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'method_notes.md', sourceB: 'gaba_data.xlsx', type: 'table_document_support', confidence: 0.86, evidence: ['Table/data supports document via: gaba, treatment'] },
+          { sourceA: 'column_dict.md', sourceB: 'gaba_data.xlsx', type: 'table_document_support', confidence: 0.78, evidence: ['Table/data supports document via: gaba'] },
+          { sourceA: 'unrelated.md', sourceB: '', type: 'isolated_source', confidence: 1.0, evidence: ['No shared topics or entities with other sources'] },
+        ],
+      }),
+    );
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever);
+    const result = await composer.answer('Which files are related?');
+
+    expect(result.intent).toBe('source_relationships');
+    expect(result.answer).toContain('method_notes.md');
+    expect(result.answer).toContain('gaba_data.xlsx');
+    expect(result.answer).toContain('86%');
+    expect(result.confidence).toBeGreaterThan(0);
+  });
+
+  it('answers "Which files are isolated?" listing isolated sources', async () => {
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'lonely.txt', sourceB: '', type: 'isolated_source', confidence: 1.0, evidence: ['No shared topics or entities with other sources'] },
+        ],
+      }),
+    );
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever);
+    const result = await composer.answer('Which files are isolated?');
+
+    expect(result.intent).toBe('source_relationships');
+    expect(result.answer).toContain('lonely.txt');
+    expect(result.answer).toContain('Isolated');
+  });
+
+  it('returns insufficient-context when workspace-relationships.json is missing', async () => {
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever);
+    const result = await composer.answer('Which files are related?');
+
+    expect(result.intent).toBe('source_relationships');
+    expect(result.answer).toContain('could not find enough information');
+    expect(result.sourceRefs).toEqual([]);
+    expect(result.confidence).toBe(0);
+  });
+
+  it('relationship answer includes sourceRefs with workspace-relationships artifactType', async () => {
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'a.md', sourceB: 'b.csv', type: 'shared_topic', confidence: 0.7, evidence: ['Shared topics: pumps'] },
+        ],
+      }),
+    );
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever);
+    const result = await composer.answer('Show me the file relationships');
+
+    expect(result.sourceRefs).toHaveLength(1);
+    expect(result.sourceRefs[0]!.fileName).toBe('workspace-relationships.json');
+    expect(result.sourceRefs[0]!.artifactType).toBe('workspace-relationships');
+    expect(result.sourceRefs[0]!.snippet).toContain('a.md');
+  });
+
+  it('deterministic relationship Q&A does NOT call LLM', async () => {
+    writeFileSync(
+      resolve(outputDir, 'workspace-relationships.json'),
+      JSON.stringify({
+        workspaceId: 'ws_test',
+        generatedAt: new Date().toISOString(),
+        relationships: [
+          { sourceA: 'config.json', sourceB: 'manual.md', type: 'config_document_support', confidence: 0.8, evidence: ['Config supports document via: cooling tower'] },
+        ],
+      }),
+    );
+
+    const throwingModel = new FakeListChatModel({ responses: [] });
+    throwingModel.invoke = () => {
+      throw new Error('LLM should not be called for relationship Q&A');
+    };
+
+    const retriever = new LocalRetriever(outputDir, sourcesDir);
+    const composer = new WorkspaceAnswerComposer(retriever, throwingModel);
+    // Should NOT throw
+    const result = await composer.answer('Which document explains this workbook?');
+
+    expect(result.intent).toBe('source_relationships');
+    expect(result.answer).toContain('config.json');
+  });
 });

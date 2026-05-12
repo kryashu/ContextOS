@@ -28,6 +28,19 @@ describe('QuestionRouter', () => {
     expect(router.classify('What spreadsheets are available?')).toBe('sheet_query');
   });
 
+  it('classifies "source_relationships" questions', () => {
+    expect(router.classify('Which files are related?')).toBe('source_relationships');
+    expect(router.classify('Which files are isolated?')).toBe('source_relationships');
+    expect(router.classify('Show me the file relationships')).toBe('source_relationships');
+    expect(router.classify('Which document supports this workbook?')).toBe('source_relationships');
+    expect(router.classify('Which connected files exist?')).toBe('source_relationships');
+    expect(router.classify('How are the files related?')).toBe('source_relationships');
+  });
+
+  it('classifies "Which document explains this workbook?" as source_relationships (not sheet_query)', () => {
+    expect(router.classify('Which document explains this workbook?')).toBe('source_relationships');
+  });
+
   it('classifies "document_fact" for general questions', () => {
     expect(router.classify('How many patients were enrolled in the trial?')).toBe('document_fact');
     expect(router.classify('What was the primary endpoint result?')).toBe('document_fact');

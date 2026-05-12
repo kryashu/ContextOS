@@ -38,6 +38,22 @@ const RULES: IntentRule[] = [
     ],
   },
   {
+    intent: 'source_relationships',
+    patterns: [
+      /\brelated\s+files?\b/i,
+      /\bfiles?\s+(are\s+)?related\b/i,
+      /\bfile\s+relationships?\b/i,
+      /which\s+(documents?|files?)\s+support/i,
+      /\bisolated\s+(files?|sources?)\b/i,
+      /\bfiles?\s+(are\s+)?isolated\b/i,
+      /\bconnected\s+(files?|sources?)\b/i,
+      /\bfiles?\s+(are\s+)?connected\b/i,
+      /which\s+(documents?|files?)\s+(explains?|supports?)\s+(this\s+)?(workbook|table)/i,
+      /\bsource\s+relationships?\b/i,
+      /\bhow\s+(are|do)\s+(the\s+)?files?\s+related/i,
+    ],
+  },
+  {
     intent: 'sheet_query',
     patterns: [
       /\bsheet(s)?\b/i,
