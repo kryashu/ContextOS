@@ -43,15 +43,16 @@ describe('config', () => {
     }
   });
 
-  it('defaults to mock when LLM_PROVIDER is not set', () => {
+  it('defaults to undefined when LLM_PROVIDER is not set', () => {
     withEnv({ LLM_PROVIDER: undefined }, () => {
       const cfg = getConfig();
-      expect(cfg.provider).toBe('mock');
+      expect(cfg.provider).toBeUndefined();
     });
   });
 
-  it('resolves LLM_PROVIDER=mock', () => {
+  it('resolves LLM_PROVIDER=mock in test environment', () => {
     withEnv({ LLM_PROVIDER: 'mock' }, () => {
+      // vitest sets NODE_ENV=test, so mock is allowed
       const cfg = getConfig();
       expect(cfg.provider).toBe('mock');
     });
@@ -86,6 +87,28 @@ describe('config', () => {
       expect(cfg.provider).toBe('groq');
     });
   });
+
+  it('rejects mock provider in production (NODE_ENV=production)', () => {
+    withEnv({ LLM_PROVIDER: 'mock', NODE_ENV: 'production' }, () => {
+      expect(() => getConfig()).toThrow(/only allowed in test environments/);
+    });
+  });
+
+  it('allows mock when ENABLE_TEST_MODEL=true', () => {
+    withEnv({ LLM_PROVIDER: 'mock', NODE_ENV: 'production', ENABLE_TEST_MODEL: 'true' }, () => {
+      const cfg = getConfig();
+      expect(cfg.provider).toBe('mock');
+      expect(cfg.enableTestModel).toBe(true);
+    });
+  });
+
+  it('exposes enableTestModel and maxTokensPerTask', () => {
+    withEnv({ LLM_PROVIDER: undefined, MAX_TOKENS_PER_TASK: '4000' }, () => {
+      const cfg = getConfig();
+      expect(cfg.enableTestModel).toBe(false);
+      expect(cfg.maxTokensPerTask).toBe(4000);
+    });
+  });
 });
 
 describe('printConfig', () => {
@@ -102,15 +125,15 @@ describe('printConfig', () => {
 });
 
 describe('model-factory guard', () => {
-  it('allows createChatModel("mock") in mock mode', () => {
+  it('allows createChatModel("mock") in test environment', () => {
     withEnv({ LLM_PROVIDER: 'mock' }, () => {
       const model = createChatModel('mock');
       expect(model).toBeDefined();
     });
   });
 
-  it('blocks hosted providers in mock mode', () => {
-    withEnv({ LLM_PROVIDER: 'mock' }, () => {
+  it('blocks hosted providers when LLM_PROVIDER is not configured', () => {
+    withEnv({ LLM_PROVIDER: undefined }, () => {
       expect(() => createChatModel('openai')).toThrow(
         /Cannot create hosted provider/
       );
@@ -121,6 +144,18 @@ describe('model-factory guard', () => {
         /Cannot create hosted provider/
       );
     });
+  });
+
+  it('blocks hosted providers in mock mode', () => {
+    withEnv({ LLM_PROVIDER: 'mock' }, () => {
+      expect(() => createChatModel('openai')).toThrow(
+        /Cannot create hosted provider/
+      );
+    });
+  });
+
+  it('throws when provider argument is empty', () => {
+    expect(() => createChatModel('')).toThrow(/Provider is required/);
   });
 
   it('throws on unknown provider', () => {

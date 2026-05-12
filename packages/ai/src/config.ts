@@ -9,9 +9,11 @@ const VALID_PROVIDERS = ['mock', 'ollama', 'gemini', 'groq', 'openai'] as const;
 export type ValidProvider = (typeof VALID_PROVIDERS)[number];
 
 export interface AIConfig {
-  provider: ValidProvider;
+  provider: ValidProvider | undefined;
   localProvider: string;
   enableLocalFallback: boolean;
+  enableTestModel: boolean;
+  maxTokensPerTask: number;
   localFallbackMaxSizeKB: number;
   localFallbackMaxTokens: number;
   models: {
@@ -43,11 +45,29 @@ function validateProvider(value: string): ValidProvider {
  * Called lazily at runtime — never at module-load time.
  */
 export function getConfig(): AIConfig {
-  const raw = process.env['LLM_PROVIDER'] || 'mock';
-  const provider = validateProvider(raw);
+  const raw = process.env['LLM_PROVIDER'];
+  const provider = raw ? validateProvider(raw) : undefined;
+  const enableTestModel = process.env['ENABLE_TEST_MODEL'] === 'true';
+
+  // Guard: mock is only allowed in test environments
+  if (
+    provider === 'mock' &&
+    process.env['NODE_ENV'] !== 'test' &&
+    !enableTestModel
+  ) {
+    throw new Error(
+      'LLM_PROVIDER=mock is only allowed in test environments. ' +
+        'Set NODE_ENV=test or ENABLE_TEST_MODEL=true to use the mock provider.'
+    );
+  }
 
   return {
     provider,
+    enableTestModel,
+    maxTokensPerTask: parseInt(
+      process.env['MAX_TOKENS_PER_TASK'] || '16000',
+      10
+    ),
     localProvider: process.env['LOCAL_LLM_PROVIDER'] || 'ollama',
     enableLocalFallback: process.env['ENABLE_LOCAL_FALLBACK'] === 'true',
     localFallbackMaxSizeKB: parseInt(
@@ -84,7 +104,7 @@ function redact(value: string | undefined): string {
 export function printConfig(): Record<string, string> {
   const cfg = getConfig();
   return {
-    LLM_PROVIDER: cfg.provider,
+    LLM_PROVIDER: cfg.provider ?? '(not set)',
     LOCAL_LLM_PROVIDER: cfg.localProvider,
     ENABLE_LOCAL_FALLBACK: String(cfg.enableLocalFallback),
     LOCAL_FALLBACK_MAX_SIZE_KB: String(cfg.localFallbackMaxSizeKB),
