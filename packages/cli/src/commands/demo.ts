@@ -466,6 +466,7 @@ export class AnalyzeCommand {
       'workspace-context.json',
       'workspace-relationships.json',
       'workspace-report.md',
+      'workspace-report.pdf',
     ];
     const existingArtifacts: string[] = [];
     for (const f of artifactFiles) {
@@ -490,6 +491,7 @@ export class AnalyzeCommand {
       hasWorkspaceContext: existingArtifacts.includes('workspace-context.json'),
       hasSourceRelationships: existingArtifacts.includes('workspace-relationships.json'),
       hasReport: existingArtifacts.includes('workspace-report.md'),
+      hasPdf: existingArtifacts.includes('workspace-report.pdf'),
     };
 
     const manifest: AnalysisManifest = {
