@@ -19,9 +19,12 @@
   "dependencies": {
     "@contextos/types": "workspace:*",
     "@contextos/ai": "workspace:*",
-    "@langchain/core": "^0.3.0"
+    "@langchain/core": "^0.3.0",
+    "marked": "^15.0.0",
+    "pdfkit": "^0.16.0"
   },
   "devDependencies": {
+    "@types/pdfkit": "^0.13.0",
     "typescript": "^5.4.5",
     "vitest": "^1.5.0"
   }
