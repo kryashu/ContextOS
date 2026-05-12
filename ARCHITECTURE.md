@@ -1,12 +1,14 @@
 # ContextOS - System Architecture
 
 **Version:** 1.0  
-**Date:** May 6, 2026  
-**Status:** Initial Design
+**Date:** May 12, 2026  
+**Status:** Design Target (partially implemented)
+
+> **Implementation note:** This document describes the full design target for ContextOS. Not all components described here are implemented yet. See the [README](./README.md#current-status) for what exists today. The current implementation uses file-system storage (no PostgreSQL, Redis, or Neo4j), has no embedding pipeline or vector search, and does not yet use LangGraph for orchestration.
 
 ## Executive Summary
 
-ContextOS is a production-grade AI-powered Workspace Intelligence and Architecture Reasoning Platform designed to understand, analyze, and reason across heterogeneous enterprise documents and systems. Unlike simple RAG applications, ContextOS builds a semantic knowledge graph that understands relationships, detects inconsistencies, and generates architecture artifacts through agentic workflows.
+ContextOS is an open-source workspace intelligence system that analyzes collections of documents, extracts entities and relationships, detects quality issues, and generates architecture artifacts. It uses deterministic analyzers where possible and LLMs only when needed.
 
 ## Core Architectural Principles
 
@@ -23,62 +25,55 @@ ContextOS is a production-grade AI-powered Workspace Intelligence and Architectu
 
 ## High-Level System Architecture
 
+> Components marked with ✅ are implemented. Others are design targets.
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           Frontend Layer                             │
-│                    (Next.js 15 App Router)                          │
+│                     ✅ Frontend Layer                                │
+│                    (Next.js App Router)                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
-│  │  Workspace   │  │  Query       │  │  Artifact    │             │
-│  │  Dashboard   │  │  Interface   │  │  Generator   │             │
+│  │ ✅ Workspace  │  │ ✅ Q&A       │  │ ✅ Artifact   │             │
+│  │  Dashboard   │  │  Interface   │  │  Viewer      │             │
 │  └──────────────┘  └──────────────┘  └──────────────┘             │
 └─────────────────────────────────────────────────────────────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   API Gateway      │
-                    │  (Next.js Routes)  │
-                    └─────────┬─────────┘
                               │
 ┌─────────────────────────────▼─────────────────────────────────────┐
 │                      Application Core                              │
 │                                                                     │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐ │
-│  │   Ingestion      │  │   Retrieval      │  │   Reasoning     │ │
-│  │   Domain         │  │   Domain         │  │   Domain        │ │
-│  │                  │  │                  │  │                 │ │
-│  │ • Connectors     │  │ • Semantic       │  │ • Architecture  │ │
-│  │ • Extractors     │  │   Search         │  │   Analysis      │ │
-│  │ • Chunking       │  │ • Hybrid         │  │ • Relationship  │ │
-│  │ • Embeddings     │  │   Retrieval      │  │   Inference     │ │
-│  │ • Graph Builder  │  │ • Reranking      │  │ • Artifact Gen  │ │
+│  │ ✅ Parsing &     │  │   Retrieval      │  │ ✅ Extraction   │ │
+│  │   Profiling      │  │   Domain         │  │   & Generation  │ │
+│  │                  │  │   (planned)      │  │                 │ │
+│  │ • Parsers        │  │ • Semantic       │  │ • Entity        │ │
+│  │ • Profiler       │  │   Search         │  │   Extraction    │ │
+│  │ • Classifier     │  │ • Hybrid         │  │ • Relationship  │ │
+│  │                  │  │   Retrieval      │  │   Mapping       │ │
+│  │                  │  │ • Reranking      │  │ • DFD Generator │ │
 │  └──────────────────┘  └──────────────────┘  └─────────────────┘ │
 │                                                                     │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐ │
-│  │  Orchestration   │  │   Knowledge      │  │   Quality       │ │
-│  │  Domain          │  │   Graph Domain   │  │   Domain        │ │
+│  │  Orchestration   │  │ ✅ Cross-Source   │  │ ✅ Quality      │ │
+│  │  Domain          │  │   Relationships  │  │   Domain        │ │
+│  │  (planned)       │  │                  │  │                 │ │
+│  │ • Agent Router   │  │ • Source         │  │ • Duplicate     │ │
+│  │ • LangGraph      │  │   Relationship   │  │   Detection     │ │
+│  │   Workflows      │  │   Mapper         │  │ • Conflict      │ │
+│  │ • State Mgmt     │  │                  │  │   Detection     │ │
 │  │                  │  │                  │  │                 │ │
-│  │ • Agent Router   │  │ • Entity         │  │ • Duplicate     │ │
-│  │ • Workflow Mgmt  │  │   Resolution     │  │   Detection     │ │
-│  │ • LangGraph      │  │ • Relationship   │  │ • Staleness     │ │
-│  │   Executor       │  │   Mapping        │  │   Detection     │ │
-│  │ • State Mgmt     │  │ • Trust          │  │ • Conflict      │ │
-│  │                  │  │   Boundaries     │  │   Detection     │ │
 │  └──────────────────┘  └──────────────────┘  └─────────────────┘ │
 │                                                                     │
+│  ┌──────────────────┐  ┌──────────────────┐                       │
+│  │ ✅ Q&A Domain    │  │ ✅ Calculator    │                       │
+│  │                  │  │                  │                       │
+│  │ • Intent Router  │  │ • Table          │                       │
+│  │ • Local Retriever│  │   Calculations   │                       │
+│  │ • Answer Composer│  │                  │                       │
+│  └──────────────────┘  └──────────────────┘                       │
 └─────────────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────▼─────────────────────────────────────┐
-│                      Infrastructure Layer                          │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐             │
-│  │  PostgreSQL  │  │    Redis     │  │   Neo4j     │             │
-│  │  + pgvector  │  │  (Cache +    │  │ (Optional   │             │
-│  │              │  │   Queue)     │  │  Graph DB)  │             │
-│  └──────────────┘  └──────────────┘  └─────────────┘             │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐             │
-│  │  LangSmith   │  │    MCP       │  │   File      │             │
-│  │ (Tracing)    │  │  Servers     │  │   Storage   │             │
-│  └──────────────┘  └──────────────┘  └─────────────┘             │
+│                   ✅ Storage: File System                          │
+│                  (planned: PostgreSQL + pgvector, Redis, Neo4j)    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -221,39 +216,48 @@ interface KnowledgeGraph {
 
 ## Technology Stack Rationale
 
-### Frontend: Next.js 15 App Router
-- **Why:** Server Components reduce client bundle, RSC enables streaming
-- **Trade-offs:** More complex mental model vs. performance gains
-- **Alternatives Considered:** Remix (less ecosystem), SvelteKit (smaller community)
+### Frontend: Next.js (App Router)
+- **Why:** Server Components reduce client bundle, Server Actions simplify mutations
+- **Current:** Next.js 14 with App Router, React 18, Mermaid for diagram rendering
 
 ### Backend: Node.js + TypeScript
 - **Why:** Unified language, rich ecosystem, LangChain native support
-- **Trade-offs:** Single-threaded vs. horizontal scaling strategy
-- **Alternatives Considered:** Python (weaker typing), Go (no LangChain)
+- **Current:** TypeScript strict mode, ESM modules, pnpm workspaces + Turborepo
 
-### Database: PostgreSQL + pgvector
-- **Why:** ACID guarantees, mature ecosystem, vector support without separate DB
-- **Trade-offs:** Vector performance vs. dedicated vector DB
-- **Alternatives Considered:** Pinecone (vendor lock-in), Weaviate (ops complexity)
+### AI: LangChain.js + Multi-Provider
+- **Why:** Standardized LLM interface, task-based routing, provider portability
+- **Current:** Groq, Gemini, Ollama, OpenAI supported; Zod for structured output validation
 
-### Graph DB: Neo4j (Optional)
-- **Why:** Native graph queries, visualization tools
-- **Trade-offs:** Additional operational complexity
-- **Alternatives Considered:** PostgreSQL with recursive CTEs (chosen for MVP)
+### Storage: File System (current) → PostgreSQL + pgvector (planned)
+- **Current:** JSON files on disk, no database required
+- **Planned:** PostgreSQL 16 + pgvector for persistent storage and vector search
 
-### Cache/Queue: Redis
-- **Why:** Fast, reliable, supports both caching and job queues
-- **Trade-offs:** Additional infrastructure vs. performance
-- **Alternatives Considered:** In-memory (no persistence), Postgres (slower)
-
-### Orchestration: LangGraph.js
-- **Why:** Explicit state machines, debuggable, stateful workflows
-- **Trade-offs:** Learning curve vs. transparency
-- **Alternatives Considered:** LangChain only (less control), custom (reinventing wheel)
+### Orchestration: Sequential Pipeline (current) → LangGraph.js (planned)
+- **Current:** Sequential function calls in the CLI analyze command
+- **Planned:** LangGraph.js state machines for multi-step agent workflows
 
 ## Data Flow
 
-### Ingestion Flow
+### Current Analysis Pipeline (Implemented)
+```
+Files on Disk → Parser Registry → Source Profiler → Classifier
+                                                        ↓
+                                              Entity Extractor (LLM)
+                                                        ↓
+                                              Relationship Mapper
+                                                        ↓
+                                            ┌───────────┴──────────┐
+                                            ↓                      ↓
+                                      DFD Generator       Quality Detector
+                                            ↓                      ↓
+                                      Cross-Source         Workspace Summary
+                                      Relationships               ↓
+                                            └──────┬───────────────┘
+                                                   ↓
+                                            Output Files (JSON, .mmd)
+```
+
+### Planned: Ingestion Flow (Not Yet Implemented)
 ```
 External Source → Connector → Extractor → Chunker → Embedder → PostgreSQL
                                     ↓
@@ -262,7 +266,7 @@ External Source → Connector → Extractor → Chunker → Embedder → Postgre
                           Graph Builder → Knowledge Graph
 ```
 
-### Query Flow
+### Planned: Query Flow (Not Yet Implemented)
 ```
 User Query → Query Understanding → Retrieval Strategy Selection
                                           ↓
@@ -277,7 +281,7 @@ User Query → Query Understanding → Retrieval Strategy Selection
                                    Source Attribution
 ```
 
-### Architecture Generation Flow
+### Planned: Architecture Generation Flow (Not Yet Implemented)
 ```
 User Request → Agent Router → Analysis Agent
                                    ↓
@@ -294,7 +298,9 @@ User Request → Agent Router → Analysis Agent
                           Store & Present
 ```
 
-## Scalability Considerations
+## Scalability Considerations (Planned)
+
+> The current implementation is single-process, file-system-based. The following describes the scaling strategy for future phases.
 
 ### Phase 1: Single-Node (0-10k documents)
 - Monolith deployment
@@ -316,7 +322,9 @@ User Request → Agent Router → Analysis Agent
 - Separate graph database (Neo4j)
 - Kubernetes orchestration
 
-## Observability Strategy
+## Observability Strategy (Planned)
+
+> The current implementation uses console logging. The following describes the planned observability stack.
 
 ### Tracing
 - LangSmith for LLM calls
@@ -341,7 +349,9 @@ User Request → Agent Router → Analysis Agent
 - Cache hit rates
 - Error rates by domain
 
-## Security Considerations
+## Security Considerations (Planned)
+
+> The current implementation is single-user with no authentication. The following describes the planned security model.
 
 ### Authentication & Authorization
 - OAuth2/OIDC for user authentication
@@ -362,7 +372,9 @@ User Request → Agent Router → Analysis Agent
 - XSS prevention (React automatic escaping)
 - CSRF tokens
 
-## Integration Points
+## Integration Points (Planned)
+
+> No external integrations are implemented yet. The following describes the planned integration architecture.
 
 ### MCP (Model Context Protocol)
 - Pluggable architecture for external tools
