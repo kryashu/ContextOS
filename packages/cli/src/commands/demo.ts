@@ -123,6 +123,7 @@ export class AnalyzeCommand {
       sourceRelationships,
     });
     await this.writeExcelOutputs(workspacePath, sources);
+    await this.writeExtractedText(workspacePath, sources);
 
     // Step 10: Write analysis manifest
     console.log('Step 10: Writing analysis manifest...');
@@ -164,7 +165,7 @@ export class AnalyzeCommand {
 
   private async parseSources(sourceFiles: Array<{ filePath: string; fileName: string }>): Promise<Source[]> {
     const sources: Source[] = [];
-    const BINARY_TYPES = new Set(['xlsx']);
+    const BINARY_TYPES = new Set(['xlsx', 'pdf', 'docx']);
 
     for (const file of sourceFiles) {
       try {
@@ -201,6 +202,8 @@ export class AnalyzeCommand {
     if (fileName.endsWith('.csv')) return 'csv';
     if (fileName.endsWith('.json')) return 'json';
     if (fileName.endsWith('.xlsx')) return 'xlsx';
+    if (fileName.endsWith('.pdf')) return 'pdf';
+    if (fileName.endsWith('.docx')) return 'docx';
     if (fileName.endsWith('.txt')) return 'text';
     if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) return 'yaml';
     if (fileName.includes('.figma.')) return 'figma';
@@ -391,6 +394,30 @@ export class AnalyzeCommand {
       );
       console.log(`  📋 Wrote normalized-observations.json (${allObservations.length} observations)`);
     }
+  }
+
+  /**
+   * Persist extracted text from PDF/DOCX sources so Q&A retriever can search them.
+   */
+  private async writeExtractedText(
+    workspacePath: string,
+    sources: Source[],
+  ): Promise<void> {
+    const extractable = sources.filter(
+      s => (s.fileType === 'pdf' || s.fileType === 'docx') && s.rawContent,
+    );
+    if (extractable.length === 0) return;
+
+    const textDir = path.join(workspacePath, 'output', 'extracted-text');
+    await fs.mkdir(textDir, { recursive: true });
+
+    for (const src of extractable) {
+      await fs.writeFile(
+        path.join(textDir, `${src.fileName}.txt`),
+        src.rawContent,
+      );
+    }
+    console.log(`  📝 Wrote extracted-text/ (${extractable.length} file${extractable.length > 1 ? 's' : ''})`);
   }
 
   private async writeManifest(
