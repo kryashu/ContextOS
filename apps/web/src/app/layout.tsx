@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Visualize and analyze your workspace with ContextOS',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" data-theme="dark">
       <head />
