@@ -56,6 +56,8 @@ interface ManifestCapabilities {
   hasSourceProfiles: boolean;
   hasWorkspaceContext: boolean;
   hasSourceRelationships: boolean;
+  hasReport: boolean;
+  hasPdf: boolean;
 }
 
 interface ManifestSourceEntry {
@@ -139,6 +141,8 @@ function writeManifest(outputDir: string, overrides: Partial<AnalysisManifest> =
       hasSourceProfiles: false,
       hasWorkspaceContext: false,
       hasSourceRelationships: false,
+      hasReport: false,
+      hasPdf: false,
     },
     ...overrides,
   };
@@ -204,6 +208,8 @@ describe('Workspace isolation', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -233,6 +239,8 @@ describe('Workspace isolation', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -256,6 +264,8 @@ describe('Workspace isolation', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -280,6 +290,8 @@ describe('Workspace isolation', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -440,6 +452,8 @@ describe('Source-type-aware pipeline', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -465,6 +479,8 @@ describe('Source-type-aware pipeline', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -505,6 +521,8 @@ describe('Source-type-aware pipeline', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
@@ -549,6 +567,8 @@ describe('Calculation engine lifecycle', () => {
         hasSourceProfiles: false,
         hasWorkspaceContext: false,
         hasSourceRelationships: false,
+        hasReport: false,
+        hasPdf: false,
       },
     });
 
