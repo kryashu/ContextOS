@@ -2,6 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   transpilePackages: ['@contextos/calculator'],
+  serverExternalPackages: ['pdfkit'],
   // Suppress React hydration warnings from Mermaid SVG injection
   reactStrictMode: true,
   experimental: {
