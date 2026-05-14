@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { uploadFilesAction } from '@/app/workspaces/actions';
+import { uploadFilesAction, type FileResult } from '@/app/workspaces/actions';
+
+const REJECTION_LABELS: Record<string, string> = {
+  unsupported_extension: 'Unsupported file type',
+  oversized: 'File is too large',
+  empty: 'File is empty',
+  invalid_name: 'Invalid file name',
+  write_failed: 'Could not save file',
+};
 
 interface Props {
   workspaceId: string;
@@ -9,7 +17,7 @@ interface Props {
 
 export default function FileUpload({ workspaceId }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; fileResults?: FileResult[] } | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -24,7 +32,7 @@ export default function FileUpload({ workspaceId }: Props) {
     startTransition(async () => {
       const res = await uploadFilesAction(workspaceId, formData);
       setResult(res);
-      if (res.success) {
+      if (res.success && res.fileCount > 0) {
         window.location.reload();
       }
     });
@@ -62,13 +70,28 @@ export default function FileUpload({ workspaceId }: Props) {
         .md, .csv, .json, .txt, .yaml, .yml, .pdf, .docx — max 5MB each
       </span>
       {result && (
-        <p style={{
-          marginTop: 8,
-          fontSize: 13,
-          color: result.success ? '#3fb950' : '#f85149',
-        }}>
-          {result.message}
-        </p>
+        <div style={{ marginTop: 8 }}>
+          <p style={{
+            fontSize: 13,
+            color: result.success ? '#3fb950' : '#f85149',
+          }}>
+            {result.message}
+          </p>
+          {result.fileResults && result.fileResults.length > 0 && (
+            <ul style={{ margin: '4px 0 0', padding: '0 0 0 20px', fontSize: 12, lineHeight: 1.6 }}>
+              {result.fileResults.map((fr, i) => (
+                <li key={i} style={{ color: fr.status === 'accepted' ? '#3fb950' : '#f85149' }}>
+                  {fr.status === 'accepted' ? '✅' : '❌'} {fr.fileName}
+                  {fr.reason && (
+                    <span style={{ color: 'var(--color-muted)', marginLeft: 6 }}>
+                      — {REJECTION_LABELS[fr.reason] ?? 'Could not upload file'}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
