@@ -1,4 +1,4 @@
-import { Card, Badge } from '@contextos/ui';
+import { Card, Badge, EmptyState } from '@contextos/ui';
 
 const typeLabels: Record<string, string> = {
   shared_topic: '📌 Shared Topic',
@@ -32,7 +32,9 @@ interface RelationshipMap {
 
 export default function SourceRelationshipPanel({ data }: { data: RelationshipMap }) {
   const relationships = data.relationships ?? [];
-  if (relationships.length === 0) return null;
+  if (relationships.length === 0) {
+    return <EmptyState icon="🔗" title="No source relationships found." subtitle="Relationships will appear after analysis detects connections between sources." />;
+  }
 
   const connected = relationships.filter(r => r.type !== 'isolated_source');
   const isolated = relationships.filter(r => r.type === 'isolated_source');
@@ -63,9 +65,9 @@ export default function SourceRelationshipPanel({ data }: { data: RelationshipMa
               {r.sourceA} ↔ {r.sourceB}
             </span>
             {r.confidence !== undefined && (
-              <span style={{ fontSize: 12, color: 'var(--color-muted)', marginLeft: 'auto' }}>
+              <Badge color={r.confidence >= 0.7 ? '#238636' : r.confidence >= 0.4 ? '#9e6a03' : '#da3633'}>
                 {(r.confidence * 100).toFixed(0)}%
-              </span>
+              </Badge>
             )}
           </div>
           {r.evidence && r.evidence.length > 0 && (
@@ -78,8 +80,19 @@ export default function SourceRelationshipPanel({ data }: { data: RelationshipMa
 
       {isolated.length > 0 && (
         <div style={{ marginTop: connected.length > 0 ? 12 : 0, fontSize: 13, color: 'var(--color-muted)' }}>
-          <strong>Isolated sources:</strong>{' '}
-          {isolated.map(r => r.sourceA).join(', ')}
+          <strong>Isolated sources:</strong>
+          <ul style={{ margin: '4px 0 0', padding: '0 0 0 20px' }}>
+            {isolated.map((r, i) => (
+              <li key={i}>
+                {r.sourceA}
+                {r.evidence && r.evidence.length > 0 && (
+                  <span style={{ marginLeft: 6, fontStyle: 'italic' }}>
+                    — {r.evidence.join(' · ')}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </Card>
