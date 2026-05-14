@@ -49,10 +49,16 @@ export async function createWorkspaceAction(
   }
 }
 
+export interface FileResult {
+  fileName: string;
+  status: 'accepted' | 'rejected';
+  reason?: string;
+}
+
 export async function uploadFilesAction(
   workspaceId: string,
   formData: FormData,
-): Promise<{ success: boolean; fileCount: number; message: string }> {
+): Promise<{ success: boolean; fileCount: number; message: string; fileResults?: FileResult[] }> {
   try {
     const workspace = getWorkspace(workspaceId);
     if (!workspace) {
@@ -69,26 +75,39 @@ export async function uploadFilesAction(
 
     const sourcesDir = getSourcesDir(workspaceId);
     let uploaded = 0;
+    const fileResults: FileResult[] = [];
 
     for (const file of files) {
-      if (!(file instanceof File) || file.size === 0) continue;
+      if (!(file instanceof File) || file.size === 0) {
+        if (file instanceof File) {
+          fileResults.push({ fileName: file.name, status: 'rejected', reason: 'empty' });
+        }
+        continue;
+      }
 
       // Validate extension
       const ext = '.' + file.name.split('.').pop()?.toLowerCase();
       if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        continue; // skip unsupported files silently
+        fileResults.push({ fileName: file.name, status: 'rejected', reason: 'unsupported_extension' });
+        continue;
       }
 
       // Validate size
       if (file.size > MAX_FILE_SIZE) {
-        continue; // skip oversized files
+        fileResults.push({ fileName: file.name, status: 'rejected', reason: 'oversized' });
+        continue;
       }
 
       // Sanitize filename — only allow alphanumeric, hyphens, underscores, dots
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const buffer = Buffer.from(await file.arrayBuffer());
-      writeFileSync(resolve(sourcesDir, safeName), buffer);
-      uploaded++;
+      try {
+        writeFileSync(resolve(sourcesDir, safeName), buffer);
+        uploaded++;
+        fileResults.push({ fileName: safeName, status: 'accepted' });
+      } catch {
+        fileResults.push({ fileName: file.name, status: 'rejected', reason: 'write_failed' });
+      }
     }
 
     updateWorkspace(workspaceId, {
@@ -105,6 +124,7 @@ export async function uploadFilesAction(
       success: true,
       fileCount: uploaded,
       message: `Uploaded ${uploaded} file${uploaded !== 1 ? 's' : ''}.`,
+      fileResults,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
