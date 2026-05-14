@@ -24,12 +24,15 @@ export default function ReportPanel({
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   function handleGenerate() {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const res = await generateAction();
       if (res.success) {
+        setSuccess('Report generated successfully.');
         window.location.reload();
       } else {
         setError(res.message);
@@ -39,6 +42,7 @@ export default function ReportPanel({
 
   function handleDownload() {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const res = await downloadAction();
       if (res.success && res.content) {
@@ -57,6 +61,7 @@ export default function ReportPanel({
 
   function handleGeneratePdf() {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const res = await generatePdfAction();
       if (res.success) {
@@ -69,6 +74,7 @@ export default function ReportPanel({
 
   function handleDownloadPdf() {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const res = await downloadPdfAction();
       if (res.success && res.content) {
@@ -130,6 +136,14 @@ export default function ReportPanel({
             </Button>
           )}
         </div>
+      )}
+      {!hasReport && (
+        <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>
+          Generate a Markdown report first to enable PDF export.
+        </p>
+      )}
+      {success && (
+        <span style={{ color: '#3fb950', fontSize: 13 }}>{success}</span>
       )}
       {error && (
         <span style={{ color: '#f85149', fontSize: 13 }}>{error}</span>
