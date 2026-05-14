@@ -240,9 +240,11 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
 
       {/* Analysis State Banner */}
       {analysisState === 'stale' && (
-        <Banner variant="warning">
-          ⚠️ Analysis is stale. Sources changed after this report was generated. Click &quot;Run Analysis&quot; to update.
-        </Banner>
+        <div style={{ marginBottom: 16 }}>
+          <Banner variant="warning">
+            ⚠️ Analysis is stale. Sources changed after this report was generated. Click &quot;Run Analysis&quot; to update.
+          </Banner>
+        </div>
       )}
 
       {analysisState === 'failed' && (
@@ -261,6 +263,7 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
       {/* No analysis yet */}
       {analysisState === 'none' && sourceFiles.length > 0 && (
         <EmptyState
+          icon="📊"
           title="No analysis results yet."
           subtitle='Click "Run Analysis" to process the uploaded files.'
         />
@@ -268,8 +271,9 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
 
       {analysisState === 'none' && sourceFiles.length === 0 && (
         <EmptyState
+          icon="📁"
           title="Upload source files to begin."
-          subtitle="Supported formats: .md, .csv, .json, .txt, .yaml, .yml, .xlsx"
+          subtitle="Supported formats: .md, .csv, .json, .txt, .yaml, .yml, .xlsx, .pdf, .docx"
         />
       )}
 
@@ -282,8 +286,12 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
           opacity: analysisState === 'stale' ? 0.7 : 1,
         }}>
           {workspaceCtx && <WorkspaceContextReport context={workspaceCtx} />}
-          {sourceProfilesData && <SourceProfileTable profiles={sourceProfilesData} />}
-          {sourceRelationships && <SourceRelationshipPanel data={sourceRelationships} />}
+          {sourceProfilesData ? <SourceProfileTable profiles={sourceProfilesData} /> : (
+            <EmptyState icon="📋" title="No source profiles available." subtitle="Source profiles are generated during analysis." />
+          )}
+          {sourceRelationships ? <SourceRelationshipPanel data={sourceRelationships} /> : (
+            <EmptyState icon="🔗" title="No source relationships available." subtitle="Relationships are detected during analysis." />
+          )}
           <WorkspaceSummary data={summary} />
           <SourceInventory data={summary} />
           {graph && <EntityTable nodes={graph.nodes ?? []} />}
