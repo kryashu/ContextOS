@@ -97,7 +97,10 @@ export default function WorkspaceQA({ workspaceId, analysisState }: Props) {
             Intent: <Badge color="#6b7280">{answer.intent}</Badge>
             {answer.confidence > 0 && (
               <span style={{ marginLeft: 8 }}>
-                Confidence: {Math.round(answer.confidence * 100)}%
+                Confidence:{' '}
+                <Badge color={answer.confidence >= 0.7 ? '#238636' : answer.confidence >= 0.4 ? '#9e6a03' : '#da3633'}>
+                  {Math.round(answer.confidence * 100)}%
+                </Badge>
               </span>
             )}
           </div>
@@ -105,22 +108,33 @@ export default function WorkspaceQA({ workspaceId, analysisState }: Props) {
           <p style={{ margin: '0 0 12px', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
             {answer.answer}
           </p>
+          <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--color-muted)', fontStyle: 'italic' }}>
+            Answers are grounded in workspace analysis artifacts and may not reflect external knowledge.
+          </p>
 
           {answer.sourceRefs.length > 0 && (
             <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
               Sources:{' '}
               {answer.sourceRefs.map((ref, i) => (
                 <span key={i} style={{ marginRight: 4, marginBottom: 4, display: 'inline-block' }}>
-                  <Badge color="#4b5563">{ref.fileName}</Badge>
+                  <Badge color="#4b5563">
+                    {ref.fileName}
+                    {ref.artifactType && ref.artifactType !== 'source-file' ? ` (${ref.artifactType})` : ''}
+                  </Badge>
+                  {ref.snippet && (
+                    <span style={{ fontSize: 11, color: 'var(--color-muted)', marginLeft: 2 }}>
+                      &quot;{ref.snippet.slice(0, 60)}{ref.snippet.length > 60 ? '…' : ''}&quot;
+                    </span>
+                  )}
                 </span>
               ))}
             </div>
           )}
 
           {answer.warnings.length > 0 && (
-            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-muted)' }}>
+            <div style={{ marginTop: 8 }}>
               {answer.warnings.map((w, i) => (
-                <div key={i}>⚠ {w}</div>
+                <Banner key={i} variant="warning">{w}</Banner>
               ))}
             </div>
           )}
