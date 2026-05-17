@@ -18,6 +18,9 @@ import {
 import { TableCalculator } from '@contextos/calculator';
 import { WorkspaceAnswerComposer, LocalRetriever, WorkspaceReportGenerator, PdfReportRenderer } from '@contextos/qa';
 import { getModelForTask, TaskType } from '@contextos/ai';
+import { toolRegistry } from '@contextos/tools';
+import { WorkspaceAnalystAgent } from '@contextos/agents';
+import type { AgentRunResult } from '@contextos/agents';
 import type { WorkspaceAnswer } from '@contextos/types';
 
 /** Monorepo root — apps/web -> apps -> root */
@@ -422,5 +425,41 @@ export async function downloadPdfReportAction(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, message: `Download failed: ${msg}` };
+  }
+}
+
+// ── Workspace Agent ─────────────────────────────────────────────────
+
+const MAX_GOAL_LENGTH = 500;
+
+export async function runWorkspaceAgentAction(
+  workspaceId: string,
+  goal: string,
+  allowWrites?: boolean,
+): Promise<{ success: boolean; result?: AgentRunResult; error?: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'Workspace not found.' };
+    }
+
+    const trimmedGoal = goal.trim();
+    if (!trimmedGoal) {
+      return { success: false, error: 'Goal cannot be empty.' };
+    }
+    if (trimmedGoal.length > MAX_GOAL_LENGTH) {
+      return { success: false, error: `Goal must be ${MAX_GOAL_LENGTH} characters or fewer.` };
+    }
+
+    const agent = new WorkspaceAnalystAgent(toolRegistry);
+    const result = await agent.run({
+      workspaceId,
+      goal: trimmedGoal,
+      allowWrites: allowWrites ?? false,
+    });
+
+    return { success: true, result };
+  } catch {
+    return { success: false, error: 'The workspace agent encountered an error. Please try again.' };
   }
 }

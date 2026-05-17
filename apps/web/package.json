@@ -10,9 +10,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@contextos/agents": "workspace:*",
     "@contextos/ai": "workspace:*",
     "@contextos/calculator": "workspace:*",
     "@contextos/qa": "workspace:*",
+    "@contextos/tools": "workspace:*",
     "@contextos/types": "workspace:*",
     "@contextos/ui": "workspace:*",
     "mermaid": "^11.4.0",

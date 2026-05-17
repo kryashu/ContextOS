@@ -1,0 +1,166 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import type { AgentRunResult } from '@contextos/agents';
+import { Card, Button } from '@contextos/ui';
+import { PRESET_GOALS } from './agent/preset-goals';
+import AgentResultDisplay from './agent/AgentResultDisplay';
+
+type AnalysisState = 'none' | 'stale' | 'current' | 'failed';
+
+interface WorkspaceAgentPanelProps {
+  workspaceId: string;
+  analysisState: AnalysisState;
+  runAgentAction: (
+    goal: string,
+    allowWrites?: boolean,
+  ) => Promise<{ success: boolean; result?: AgentRunResult; error?: string }>;
+}
+
+const DISABLED_MESSAGES: Partial<Record<AnalysisState, string>> = {
+  none: 'Run analysis before using the workspace agent.',
+  stale: 'Analysis is stale. Re-run analysis before using the workspace agent.',
+  failed: 'Analysis failed. Re-run analysis before using the workspace agent.',
+};
+
+export default function WorkspaceAgentPanel({
+  analysisState,
+  runAgentAction,
+}: WorkspaceAgentPanelProps) {
+  const [goal, setGoal] = useState('');
+  const [allowWrites, setAllowWrites] = useState(false);
+  const [result, setResult] = useState<AgentRunResult | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const isDisabled = analysisState !== 'current';
+  const disabledMessage = DISABLED_MESSAGES[analysisState];
+
+  function handleRun() {
+    if (!goal.trim() || isDisabled) return;
+    setError(null);
+    setResult(null);
+
+    startTransition(async () => {
+      const response = await runAgentAction(goal.trim(), allowWrites);
+      if (response.success && response.result) {
+        setResult(response.result);
+        setGeneratedAt(new Date().toISOString());
+      } else {
+        setError(response.error ?? 'An unexpected error occurred.');
+      }
+    });
+  }
+
+  return (
+    <Card style={{ padding: 20, marginBottom: 24 }}>
+      <h2 style={{ margin: '0 0 12px', fontSize: 18 }}>🤖 Workspace Agent</h2>
+
+      {/* Disabled message */}
+      {isDisabled && disabledMessage && (
+        <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 12px' }}>
+          {disabledMessage}
+        </p>
+      )}
+
+      {/* Goal input */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <input
+          type="text"
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          placeholder="What do you want ContextOS to do with this workspace?"
+          disabled={isDisabled || isPending}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleRun();
+          }}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            borderRadius: 6,
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-surface)',
+            color: 'var(--color-fg)',
+            fontSize: 14,
+            outline: 'none',
+            opacity: isDisabled ? 0.5 : 1,
+          }}
+        />
+        <Button
+          variant="primary"
+          onClick={handleRun}
+          disabled={isDisabled || isPending || !goal.trim()}
+        >
+          {isPending ? 'Running…' : 'Run Agent'}
+        </Button>
+      </div>
+
+      {/* Allow writes checkbox */}
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          color: 'var(--color-muted)',
+          marginBottom: 12,
+          cursor: isDisabled ? 'default' : 'pointer',
+          opacity: isDisabled ? 0.5 : 1,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={allowWrites}
+          onChange={(e) => setAllowWrites(e.target.checked)}
+          disabled={isDisabled || isPending}
+        />
+        Allow report/artifact generation
+      </label>
+
+      {/* Preset goals */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+        {PRESET_GOALS.map((preset) => (
+          <button
+            key={preset.goal}
+            onClick={() => setGoal(preset.goal)}
+            disabled={isDisabled || isPending}
+            style={{
+              padding: '4px 10px',
+              borderRadius: 14,
+              border: '1px solid var(--color-border)',
+              backgroundColor: goal === preset.goal ? 'var(--color-border)' : 'transparent',
+              color: 'var(--color-fg)',
+              fontSize: 12,
+              cursor: isDisabled ? 'default' : 'pointer',
+              opacity: isDisabled ? 0.5 : 1,
+              transition: 'background-color 0.15s',
+            }}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: '8px 12px',
+            borderRadius: 6,
+            fontSize: 14,
+            backgroundColor: 'rgba(248, 81, 73, 0.1)',
+            border: '1px solid rgba(248, 81, 73, 0.3)',
+            color: '#f85149',
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Result */}
+      {result && <AgentResultDisplay result={result} generatedAt={generatedAt} />}
+    </Card>
+  );
+}

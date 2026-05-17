@@ -5,8 +5,9 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
+import { runWorkspaceAnalysis, runWorkspaceAgentAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
+import WorkspaceAgentPanel from '@/components/WorkspaceAgentPanel';
 import WorkspaceSummary from '@/components/WorkspaceSummary';
 import SourceInventory from '@/components/SourceInventory';
 import EntityTable from '@/components/EntityTable';
@@ -259,6 +260,16 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         <FileUpload workspaceId={workspace.id} />
         <SourceFileList files={sourceFiles} workspaceId={workspace.id} allowDelete />
       </Card>
+
+      {/* Workspace Agent */}
+      <WorkspaceAgentPanel
+        workspaceId={workspace.id}
+        analysisState={analysisState}
+        runAgentAction={async (goal: string, allowWrites?: boolean) => {
+          'use server';
+          return runWorkspaceAgentAction(workspace.id, goal, allowWrites);
+        }}
+      />
 
       {/* No analysis yet */}
       {analysisState === 'none' && sourceFiles.length > 0 && (

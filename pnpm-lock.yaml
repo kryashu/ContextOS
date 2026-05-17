@@ -26,6 +26,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@contextos/agents':
+        specifier: workspace:*
+        version: link:../../packages/domains/agents
       '@contextos/ai':
         specifier: workspace:*
         version: link:../../packages/ai
@@ -35,6 +38,9 @@ importers:
       '@contextos/qa':
         specifier: workspace:*
         version: link:../../packages/domains/qa
+      '@contextos/tools':
+        specifier: workspace:*
+        version: link:../../packages/domains/tools
       '@contextos/types':
         specifier: workspace:*
         version: link:../../packages/shared/types
