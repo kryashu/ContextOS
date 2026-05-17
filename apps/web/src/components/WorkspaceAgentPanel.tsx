@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from 'react';
 import type { AgentRunResult } from '@contextos/agents';
+import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
 import { Card, Button } from '@contextos/ui';
 import { PRESET_GOALS } from './agent/preset-goals';
 import AgentResultDisplay from './agent/AgentResultDisplay';
+import CommandPlanPreview from './agent/CommandPlanPreview';
 
 type AnalysisState = 'none' | 'stale' | 'current' | 'failed';
 
@@ -15,6 +17,9 @@ interface WorkspaceAgentPanelProps {
     goal: string,
     allowWrites?: boolean,
   ) => Promise<{ success: boolean; result?: AgentRunResult; error?: string }>;
+  planCommandAction: (
+    command: string,
+  ) => Promise<{ success: boolean; plan?: WorkspaceCommandPlan; error?: string }>;
 }
 
 const DISABLED_MESSAGES: Partial<Record<AnalysisState, string>> = {
@@ -26,9 +31,11 @@ const DISABLED_MESSAGES: Partial<Record<AnalysisState, string>> = {
 export default function WorkspaceAgentPanel({
   analysisState,
   runAgentAction,
+  planCommandAction,
 }: WorkspaceAgentPanelProps) {
   const [goal, setGoal] = useState('');
   const [allowWrites, setAllowWrites] = useState(false);
+  const [plan, setPlan] = useState<WorkspaceCommandPlan | null>(null);
   const [result, setResult] = useState<AgentRunResult | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +43,26 @@ export default function WorkspaceAgentPanel({
 
   const isDisabled = analysisState !== 'current';
   const disabledMessage = DISABLED_MESSAGES[analysisState];
+  const canExecute = plan?.status === 'executable';
+
+  function handlePlan() {
+    if (!goal.trim() || isDisabled) return;
+    setError(null);
+    setResult(null);
+    setPlan(null);
+
+    startTransition(async () => {
+      const response = await planCommandAction(goal.trim());
+      if (response.success && response.plan) {
+        setPlan(response.plan);
+      } else {
+        setError(response.error ?? 'Failed to plan command.');
+      }
+    });
+  }
 
   function handleRun() {
-    if (!goal.trim() || isDisabled) return;
+    if (!goal.trim() || isDisabled || !canExecute) return;
     setError(null);
     setResult(null);
 
@@ -69,11 +93,11 @@ export default function WorkspaceAgentPanel({
         <input
           type="text"
           value={goal}
-          onChange={(e) => setGoal(e.target.value)}
+          onChange={(e) => { setGoal(e.target.value); setPlan(null); }}
           placeholder="What do you want ContextOS to do with this workspace?"
           disabled={isDisabled || isPending}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleRun();
+            if (e.key === 'Enter') handlePlan();
           }}
           style={{
             flex: 1,
@@ -87,13 +111,23 @@ export default function WorkspaceAgentPanel({
             opacity: isDisabled ? 0.5 : 1,
           }}
         />
-        <Button
-          variant="primary"
-          onClick={handleRun}
-          disabled={isDisabled || isPending || !goal.trim()}
-        >
-          {isPending ? 'Running…' : 'Run Agent'}
-        </Button>
+        {!plan ? (
+          <Button
+            variant="secondary"
+            onClick={handlePlan}
+            disabled={isDisabled || isPending || !goal.trim()}
+          >
+            {isPending ? 'Planning…' : 'Plan'}
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            onClick={handleRun}
+            disabled={isDisabled || isPending || !canExecute}
+          >
+            {isPending ? 'Running…' : 'Run Agent'}
+          </Button>
+        )}
       </div>
 
       {/* Allow writes checkbox */}
@@ -123,7 +157,7 @@ export default function WorkspaceAgentPanel({
         {PRESET_GOALS.map((preset) => (
           <button
             key={preset.goal}
-            onClick={() => setGoal(preset.goal)}
+            onClick={() => { setGoal(preset.goal); setPlan(null); }}
             disabled={isDisabled || isPending}
             style={{
               padding: '4px 10px',
@@ -141,6 +175,9 @@ export default function WorkspaceAgentPanel({
           </button>
         ))}
       </div>
+
+      {/* Command plan preview */}
+      {plan && <CommandPlanPreview plan={plan} />}
 
       {/* Error */}
       {error && (

@@ -13,6 +13,7 @@
     "@contextos/agents": "workspace:*",
     "@contextos/ai": "workspace:*",
     "@contextos/calculator": "workspace:*",
+    "@contextos/orchestrator": "workspace:*",
     "@contextos/qa": "workspace:*",
     "@contextos/tools": "workspace:*",
     "@contextos/types": "workspace:*",

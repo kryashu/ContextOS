@@ -35,6 +35,9 @@ importers:
       '@contextos/calculator':
         specifier: workspace:*
         version: link:../../packages/domains/calculator
+      '@contextos/orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/domains/orchestrator
       '@contextos/qa':
         specifier: workspace:*
         version: link:../../packages/domains/qa
@@ -221,6 +224,19 @@ importers:
         version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
 
   packages/domains/generator:
+    dependencies:
+      '@contextos/types':
+        specifier: workspace:*
+        version: link:../../shared/types
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.5.0
+        version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
+
+  packages/domains/orchestrator:
     dependencies:
       '@contextos/types':
         specifier: workspace:*

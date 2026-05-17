@@ -21,6 +21,8 @@ import { getModelForTask, TaskType } from '@contextos/ai';
 import { toolRegistry } from '@contextos/tools';
 import { WorkspaceAnalystAgent } from '@contextos/agents';
 import type { AgentRunResult } from '@contextos/agents';
+import { createWorkspaceCommandPlan } from '@contextos/orchestrator';
+import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
 import type { WorkspaceAnswer } from '@contextos/types';
 
 /** Monorepo root — apps/web -> apps -> root */
@@ -461,5 +463,34 @@ export async function runWorkspaceAgentAction(
     return { success: true, result };
   } catch {
     return { success: false, error: 'The workspace agent encountered an error. Please try again.' };
+  }
+}
+
+// ── Command Plan ────────────────────────────────────────────────────
+
+const MAX_COMMAND_LENGTH = 500;
+
+export async function planWorkspaceCommandAction(
+  workspaceId: string,
+  command: string,
+): Promise<{ success: boolean; plan?: WorkspaceCommandPlan; error?: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'Workspace not found.' };
+    }
+
+    const trimmed = command.trim();
+    if (!trimmed) {
+      return { success: false, error: 'Command cannot be empty.' };
+    }
+    if (trimmed.length > MAX_COMMAND_LENGTH) {
+      return { success: false, error: `Command must be ${MAX_COMMAND_LENGTH} characters or fewer.` };
+    }
+
+    const plan = createWorkspaceCommandPlan(trimmed);
+    return { success: true, plan };
+  } catch {
+    return { success: false, error: 'Failed to plan command. Please try again.' };
   }
 }

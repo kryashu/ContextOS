@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis, runWorkspaceAgentAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
+import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
 import WorkspaceAgentPanel from '@/components/WorkspaceAgentPanel';
 import WorkspaceSummary from '@/components/WorkspaceSummary';
@@ -268,6 +268,10 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         runAgentAction={async (goal: string, allowWrites?: boolean) => {
           'use server';
           return runWorkspaceAgentAction(workspace.id, goal, allowWrites);
+        }}
+        planCommandAction={async (command: string) => {
+          'use server';
+          return planWorkspaceCommandAction(workspace.id, command);
         }}
       />
 
