@@ -15,12 +15,22 @@ export function validateWorkspaceId(workspaceId: string): void {
 }
 
 /**
+ * Injected data root. Call `setDataRoot(monorepoRoot)` before using tools
+ * in contexts where process.cwd() is not the monorepo root (e.g. Next.js).
+ */
+let _dataRoot: string | null = null;
+
+export function setDataRoot(root: string): void {
+  _dataRoot = root;
+}
+
+/**
  * Root data directory.
- * The tools package mirrors the same layout as apps/web — data/workspaces/{id}/.
- * Uses process.cwd() which should be the monorepo root when run from turbo/pnpm.
+ * Uses the injected root if set, otherwise falls back to process.cwd().
  */
 function dataDir(): string {
-  return resolve(process.cwd(), 'data', 'workspaces');
+  const root = _dataRoot ?? process.cwd();
+  return resolve(root, 'data', 'workspaces');
 }
 
 export function resolveOutputDir(workspaceId: string): string {

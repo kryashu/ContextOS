@@ -65,4 +65,23 @@ describe('createWorkspaceCommandPlan', () => {
     const plan = createWorkspaceCommandPlan('Find duplicate emails across all Excel files');
     expect(plan.status).toBe('executable');
   });
+
+  it('VS016 demo command: produces table_aggregate_query with 3 aggregations', () => {
+    const plan = createWorkspaceCommandPlan(
+      'Find all products launched before 5 May 2025 and calculate total units sold, total units in transit, and total units with retailers.',
+    );
+    expect(plan.intent).toBe('table_aggregate_query');
+    expect(plan.status).toBe('executable');
+    expect(plan.extracted.filters).toHaveLength(1);
+    expect(plan.extracted.filters![0]).toEqual({
+      field: 'date',
+      operator: 'before',
+      value: '2025-05-05',
+    });
+    expect(plan.extracted.aggregations).toHaveLength(3);
+    expect(plan.extracted.aggregations![0]!.field).toBe('units sold');
+    expect(plan.extracted.aggregations![1]!.field).toBe('units in transit');
+    expect(plan.extracted.aggregations![2]!.field).toBe('units with retailers');
+    expect(plan.extracted.aggregations!.every(a => a.operation === 'sum')).toBe(true);
+  });
 });

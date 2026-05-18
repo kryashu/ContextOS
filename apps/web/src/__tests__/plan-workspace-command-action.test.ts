@@ -10,6 +10,7 @@ vi.mock('@contextos/orchestrator', () => ({
 
 vi.mock('@contextos/tools', () => ({
   toolRegistry: {},
+  setDataRoot: vi.fn(),
 }));
 
 vi.mock('@contextos/agents', () => ({

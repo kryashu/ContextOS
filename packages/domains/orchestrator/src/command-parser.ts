@@ -132,39 +132,85 @@ export function detectAggregationOperation(command: string): AggregationOperatio
 
 // ── Aggregate field extraction ──────────────────────────────────────
 
+/**
+ * Clean trailing punctuation and conjunctions from an extracted field name.
+ */
+function cleanFieldName(raw: string): string {
+  return raw
+    .replace(/[.,;]+$/, '')
+    .replace(/\s+and\s*$/, '')
+    .trim();
+}
+
+/**
+ * Extract individual aggregation entries from a comma/and-separated field list.
+ * Example: "units sold, total units in transit, and total units with retailers"
+ * → ["units sold", "units in transit", "units with retailers"]
+ */
+function splitAggregationFields(raw: string, operation: AggregationOperation): CommandAggregation[] {
+  const results: CommandAggregation[] = [];
+
+  // Split on comma or ", and" or " and " when followed by an aggregation keyword repeat
+  // Pattern: ", total X" or ", and total X" or " and total X"
+  const parts = raw.split(/,\s*(?:and\s+)?(?:total|sum of|count|average|avg|min|max)\s+|\s+and\s+(?:total|sum of|count|average|avg|min|max)\s+/i);
+
+  // First part is the field after the initial keyword
+  const firstField = cleanFieldName(parts[0] ?? '');
+  if (firstField.length > 0 && firstField.length < 100) {
+    results.push({ field: firstField, operation, label: `${operation} of ${firstField}` });
+  }
+
+  // Remaining parts are the fields after each repeated keyword
+  for (let i = 1; i < parts.length; i++) {
+    const field = cleanFieldName(parts[i] ?? '');
+    if (field.length > 0 && field.length < 100) {
+      results.push({ field, operation, label: `${operation} of ${field}` });
+    }
+  }
+
+  return results;
+}
+
 const AGG_FIELD_PATTERN =
-  /(?:total|sum of|count|average|avg|min|max|minimum|maximum|calculate total|calculate)\s+(.+?)(?:\s+(?:by|for|from|where|before|after|and calculate|$))/gi;
+  /(?:calculate total|calculate|total|sum of|count|average|avg|min of|max of|minimum|maximum)\s+(.+?)(?:\s+(?:by|for|from|where|before|after|and calculate)\b)/gi;
+
+const AGG_FIELD_PATTERN_EOL =
+  /(?:calculate total|calculate|total|sum of|count|average|avg|min of|max of|minimum|maximum)\s+(.+?)\s*[.?!]?\s*$/i;
 
 export function extractAggregateFields(command: string): CommandAggregation[] {
   const aggregations: CommandAggregation[] = [];
   const operation = detectAggregationOperation(command) ?? 'sum';
 
+  // Strategy 1: Try the primary pattern (field followed by known delimiters)
   AGG_FIELD_PATTERN.lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = AGG_FIELD_PATTERN.exec(command)) !== null) {
     const raw = match[1]!.trim();
-    // Clean trailing conjunctions
-    const cleaned = raw.replace(/\s+and\s*$/, '').trim();
-    if (cleaned.length > 0 && cleaned.length < 100) {
-      aggregations.push({
-        field: cleaned,
-        operation,
-        label: `${operation} of ${cleaned}`,
-      });
+    const expanded = splitAggregationFields(raw, operation);
+    aggregations.push(...expanded);
+  }
+
+  // Strategy 2: Try end-of-line pattern (field runs to end of sentence)
+  if (aggregations.length === 0) {
+    const eolMatch = command.match(AGG_FIELD_PATTERN_EOL);
+    if (eolMatch) {
+      const raw = eolMatch[1]!.trim();
+      const expanded = splitAggregationFields(raw, operation);
+      aggregations.push(...expanded);
     }
   }
 
-  // Fallback: split on "and calculate" or "and total" for compound queries
+  // Strategy 3: Fallback — split on "and calculate" / "and total" for compound queries
   if (aggregations.length === 0) {
     const segments = command.split(/\band\s+(?:calculate\s+)?(?:total|sum of|count|average|min|max)\s+/i);
     for (const segment of segments) {
       const subOp = detectAggregationOperation(segment) ?? operation;
       const subMatch = segment.match(
-        /(?:total|sum of|count|average|min|max)\s+(.+?)(?:\s+(?:by|for|from|where|before|after)|\s*$)/i,
+        /(?:total|sum of|count|average|min|max)\s+(.+?)(?:\s+(?:by|for|from|where|before|after)|\s*[.?!]?\s*$)/i,
       );
       if (subMatch) {
-        const field = subMatch[1]!.trim();
+        const field = cleanFieldName(subMatch[1]!);
         if (field.length > 0 && field.length < 100) {
           aggregations.push({ field, operation: subOp, label: `${subOp} of ${field}` });
         }

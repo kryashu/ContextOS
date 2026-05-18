@@ -6,6 +6,7 @@ const mockRun = vi.fn();
 
 vi.mock('@contextos/tools', () => ({
   toolRegistry: {},
+  setDataRoot: vi.fn(),
 }));
 
 vi.mock('@contextos/agents', () => ({

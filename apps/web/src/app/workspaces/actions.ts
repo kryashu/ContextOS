@@ -18,7 +18,7 @@ import {
 import { TableCalculator } from '@contextos/calculator';
 import { WorkspaceAnswerComposer, LocalRetriever, WorkspaceReportGenerator, PdfReportRenderer } from '@contextos/qa';
 import { getModelForTask, TaskType } from '@contextos/ai';
-import { toolRegistry } from '@contextos/tools';
+import { toolRegistry, setDataRoot } from '@contextos/tools';
 import { WorkspaceAnalystAgent } from '@contextos/agents';
 import type { AgentRunResult } from '@contextos/agents';
 import { createWorkspaceCommandPlan } from '@contextos/orchestrator';
@@ -28,6 +28,7 @@ import type { WorkspaceAnswer } from '@contextos/types';
 
 /** Monorepo root — apps/web -> apps -> root */
 const ROOT_DIR = resolve(process.cwd(), '..', '..');
+setDataRoot(ROOT_DIR);
 
 const ALLOWED_EXTENSIONS = ['.md', '.csv', '.json', '.txt', '.yaml', '.yml', '.xlsx', '.pdf', '.docx'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (xlsx can be larger)

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import type { AgentRunResult } from '@contextos/agents';
-import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
+import type { WorkspaceCommandPlan, CommandIntent } from '@contextos/orchestrator';
 import type { TableQueryResult } from '@contextos/table-query';
 import type { KeyIntelligenceResult } from '@contextos/key-intelligence';
 import { Card, Button } from '@contextos/ui';
@@ -13,6 +13,14 @@ import TableQueryResultDisplay from './agent/TableQueryResultDisplay';
 import KeyIntelligenceResultDisplay from './agent/KeyIntelligenceResultDisplay';
 
 type AnalysisState = 'none' | 'stale' | 'current' | 'failed';
+
+// ── Routing guard: only these intents may call runWorkspaceAgentAction ──
+const AGENT_ALLOWED_INTENTS: Set<CommandIntent> = new Set([
+  'workspace_overview',
+  'next_actions',
+  'report_generation',
+  'source_relationship_lookup',
+]);
 
 interface WorkspaceAgentPanelProps {
   workspaceId: string;
@@ -65,77 +73,129 @@ export default function WorkspaceAgentPanel({
 
   const isDisabled = analysisState !== 'current';
   const disabledMessage = DISABLED_MESSAGES[analysisState];
-  const canExecute = plan?.status === 'executable';
-  const isTableQuery = plan?.intent === 'table_aggregate_query';
-  const isDuplicateKeyQuery = plan?.intent === 'duplicate_key_query';
-  const isDocumentLookup = (plan?.intent === 'document_lookup' || plan?.intent === 'evidence_lookup') && plan?.extracted?.keyValue;
 
-  function handlePlan() {
+  /**
+   * Ensure we have a valid, current plan for the given command.
+   * Returns the plan if successful, null otherwise (error is set internally).
+   */
+  async function ensurePlan(command: string): Promise<WorkspaceCommandPlan | null> {
+    // Reuse existing plan if command hasn't changed
+    if (plan && plan.originalCommand === command) {
+      return plan;
+    }
+
+    const response = await planCommandAction(command);
+    if (response.success && response.plan) {
+      setPlan(response.plan);
+      return response.plan;
+    }
+
+    setError(response.error ?? 'Failed to plan command.');
+    return null;
+  }
+
+  /**
+   * Execute the plan by routing to the correct action based on intent.
+   * Specialized intents NEVER fall through to runAgentAction.
+   */
+  async function executePlan(currentPlan: WorkspaceCommandPlan): Promise<void> {
+    const { intent, extracted } = currentPlan;
+
+    // ── table_aggregate_query ────────────────────────────────────────
+    if (intent === 'table_aggregate_query') {
+      const aggregations = (extracted.aggregations ?? []).map((a) => ({
+        field: a.field,
+        operation: a.operation,
+        label: a.label,
+      }));
+      if (aggregations.length === 0) {
+        setError(
+          'I understood this as a table query, but could not identify what to calculate. ' +
+          "Try: 'calculate total units sold'.",
+        );
+        return;
+      }
+      const filters = (extracted.filters ?? []).map((f) => ({
+        field: f.field,
+        operator: f.operator,
+        value: f.value,
+      }));
+      const response = await runTableQueryAction(
+        filters,
+        aggregations,
+        extracted.targetFiles,
+        true,
+      );
+      if (response.success && response.result) {
+        setTableResult(response.result);
+      } else {
+        setError(response.error ?? 'Table query failed.');
+      }
+      return;
+    }
+
+    // ── duplicate_key_query ──────────────────────────────────────────
+    if (intent === 'duplicate_key_query') {
+      const response = await findDuplicateKeysAction(extracted.keyType);
+      if (response.success && response.result) {
+        setKeyIntelligenceResult(response.result);
+      } else {
+        setError(response.error ?? 'Duplicate key detection failed.');
+      }
+      return;
+    }
+
+    // ── document_lookup / evidence_lookup ─────────────────────────────
+    if (intent === 'document_lookup' || intent === 'evidence_lookup') {
+      if (!extracted.keyValue) {
+        setError(
+          'Please specify which key or identifier to look up (e.g. product ABC-123).',
+        );
+        return;
+      }
+      const response = await findDocumentsForKeyAction(extracted.keyValue, extracted.keyType);
+      if (response.success && response.result) {
+        setKeyIntelligenceResult(response.result);
+      } else {
+        setError(response.error ?? 'Document lookup failed.');
+      }
+      return;
+    }
+
+    // ── Agent-allowed intents ────────────────────────────────────────
+    if (AGENT_ALLOWED_INTENTS.has(intent)) {
+      const response = await runAgentAction(goal.trim(), allowWrites);
+      if (response.success && response.result) {
+        setResult(response.result);
+        setGeneratedAt(new Date().toISOString());
+      } else {
+        setError(response.error ?? 'An unexpected error occurred.');
+      }
+      return;
+    }
+
+    // ── Blocked intents: unknown / needs_clarification / any unhandled ─
+    if (currentPlan.status === 'needs_clarification' && currentPlan.nextStep) {
+      setError(currentPlan.nextStep);
+    } else {
+      setError(
+        "I couldn't determine a specific workflow for this command. " +
+        'Try rephrasing or use a preset command.',
+      );
+    }
+  }
+
+  function handleRun() {
     if (!goal.trim() || isDisabled) return;
     setError(null);
     setResult(null);
     setTableResult(null);
     setKeyIntelligenceResult(null);
-    setPlan(null);
 
     startTransition(async () => {
-      const response = await planCommandAction(goal.trim());
-      if (response.success && response.plan) {
-        setPlan(response.plan);
-      } else {
-        setError(response.error ?? 'Failed to plan command.');
-      }
-    });
-  }
-
-  function handleRun() {
-    if (!goal.trim() || isDisabled || !canExecute) return;
-    setError(null);
-    setResult(null);
-    setTableResult(null);
-    setKeyIntelligenceResult(null);
-
-    startTransition(async () => {
-      if (isDuplicateKeyQuery) {
-        const response = await findDuplicateKeysAction(plan?.extracted?.keyType);
-        if (response.success && response.result) {
-          setKeyIntelligenceResult(response.result);
-        } else {
-          setError(response.error ?? 'Duplicate key detection failed.');
-        }
-      } else if (isDocumentLookup && plan?.extracted?.keyValue) {
-        const response = await findDocumentsForKeyAction(plan.extracted.keyValue, plan.extracted.keyType);
-        if (response.success && response.result) {
-          setKeyIntelligenceResult(response.result);
-        } else {
-          setError(response.error ?? 'Document lookup failed.');
-        }
-      } else if (isTableQuery && plan?.extracted) {
-        const filters = (plan.extracted.filters ?? []).map((f) => ({
-          field: f.field,
-          operator: f.operator,
-          value: f.value,
-        }));
-        const aggregations = (plan.extracted.aggregations ?? []).map((a) => ({
-          field: a.field,
-          operation: a.operation,
-          label: a.label,
-        }));
-        const response = await runTableQueryAction(filters, aggregations);
-        if (response.success && response.result) {
-          setTableResult(response.result);
-        } else {
-          setError(response.error ?? 'Table query failed.');
-        }
-      } else {
-        const response = await runAgentAction(goal.trim(), allowWrites);
-        if (response.success && response.result) {
-          setResult(response.result);
-          setGeneratedAt(new Date().toISOString());
-        } else {
-          setError(response.error ?? 'An unexpected error occurred.');
-        }
-      }
+      const currentPlan = await ensurePlan(goal.trim());
+      if (!currentPlan) return;
+      await executePlan(currentPlan);
     });
   }
 
@@ -155,11 +215,11 @@ export default function WorkspaceAgentPanel({
         <input
           type="text"
           value={goal}
-          onChange={(e) => { setGoal(e.target.value); setPlan(null); }}
+          onChange={(e) => setGoal(e.target.value)}
           placeholder="What do you want ContextOS to do with this workspace?"
           disabled={isDisabled || isPending}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handlePlan();
+            if (e.key === 'Enter') handleRun();
           }}
           style={{
             flex: 1,
@@ -173,23 +233,13 @@ export default function WorkspaceAgentPanel({
             opacity: isDisabled ? 0.5 : 1,
           }}
         />
-        {!plan ? (
-          <Button
-            variant="secondary"
-            onClick={handlePlan}
-            disabled={isDisabled || isPending || !goal.trim()}
-          >
-            {isPending ? 'Planning…' : 'Plan'}
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            onClick={handleRun}
-            disabled={isDisabled || isPending || !canExecute}
-          >
-            {isPending ? 'Running…' : 'Run Agent'}
-          </Button>
-        )}
+        <Button
+          variant="primary"
+          onClick={handleRun}
+          disabled={isDisabled || isPending || !goal.trim()}
+        >
+          {isPending ? 'Running…' : 'Run'}
+        </Button>
       </div>
 
       {/* Allow writes checkbox */}
@@ -219,7 +269,7 @@ export default function WorkspaceAgentPanel({
         {PRESET_GOALS.map((preset) => (
           <button
             key={preset.goal}
-            onClick={() => { setGoal(preset.goal); setPlan(null); }}
+            onClick={() => setGoal(preset.goal)}
             disabled={isDisabled || isPending}
             style={{
               padding: '4px 10px',

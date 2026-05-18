@@ -82,6 +82,32 @@ describe('extractAggregateFields', () => {
     expect(aggs[0]!.field).toContain('units sold');
     expect(aggs[0]!.operation).toBe('sum');
   });
+
+  it('extracts comma-separated multi-field aggregation (VS016 demo command)', () => {
+    const aggs = extractAggregateFields(
+      'Find all products launched before 5 May 2025 and calculate total units sold, total units in transit, and total units with retailers.',
+    );
+    expect(aggs).toHaveLength(3);
+    expect(aggs[0]!.field).toBe('units sold');
+    expect(aggs[0]!.operation).toBe('sum');
+    expect(aggs[1]!.field).toBe('units in transit');
+    expect(aggs[1]!.operation).toBe('sum');
+    expect(aggs[2]!.field).toBe('units with retailers');
+    expect(aggs[2]!.operation).toBe('sum');
+  });
+
+  it('extracts single aggregation ending at period', () => {
+    const aggs = extractAggregateFields('Calculate total revenue.');
+    expect(aggs).toHaveLength(1);
+    expect(aggs[0]!.field).toBe('revenue');
+    expect(aggs[0]!.operation).toBe('sum');
+  });
+
+  it('extracts aggregation with "before" delimiter', () => {
+    const aggs = extractAggregateFields('calculate total units sold before 2025');
+    expect(aggs.length).toBeGreaterThanOrEqual(1);
+    expect(aggs[0]!.field).toBe('units sold');
+  });
 });
 
 describe('extractFilterExpressions', () => {

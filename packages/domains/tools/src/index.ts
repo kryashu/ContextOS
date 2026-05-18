@@ -20,7 +20,7 @@ export {
 export { validateArtifactWrite, assertAnalysisCurrent, loadManifest } from './safety.js';
 
 // ── Workspace path utilities ────────────────────────────────────────
-export { validateWorkspaceId, buildContext } from './workspace-paths.js';
+export { validateWorkspaceId, buildContext, setDataRoot } from './workspace-paths.js';
 
 // ── Registry ────────────────────────────────────────────────────────
 export { ToolRegistry, toolRegistry } from './registry.js';
