@@ -35,6 +35,9 @@ importers:
       '@contextos/calculator':
         specifier: workspace:*
         version: link:../../packages/domains/calculator
+      '@contextos/key-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/domains/key-intelligence
       '@contextos/orchestrator':
         specifier: workspace:*
         version: link:../../packages/domains/orchestrator
@@ -239,6 +242,31 @@ importers:
         specifier: ^1.5.0
         version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
 
+  packages/domains/key-intelligence:
+    dependencies:
+      '@contextos/table-query':
+        specifier: workspace:*
+        version: link:../table-query
+      '@contextos/types':
+        specifier: workspace:*
+        version: link:../../shared/types
+      csv-parse:
+        specifier: ^5.5.5
+        version: 5.6.0
+      xlsx:
+        specifier: 0.18.5
+        version: 0.18.5
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.5.0
+        version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
+
   packages/domains/orchestrator:
     dependencies:
       '@contextos/types':
@@ -371,6 +399,9 @@ importers:
       '@contextos/calculator':
         specifier: workspace:*
         version: link:../calculator
+      '@contextos/key-intelligence':
+        specifier: workspace:*
+        version: link:../key-intelligence
       '@contextos/qa':
         specifier: workspace:*
         version: link:../qa

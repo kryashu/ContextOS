@@ -89,13 +89,15 @@ describe('ToolRegistry', () => {
     cleanup();
   });
 
-  it('lists all 12 expected tools', () => {
+  it('lists all 15 expected tools', () => {
     const tools = toolRegistry.listTools();
-    expect(tools).toHaveLength(12);
+    expect(tools).toHaveLength(15);
     const ids = tools.map((t) => t.id).sort();
     expect(ids).toEqual([
       'askWorkspaceQuestion',
       'checkAnalysisState',
+      'findDocumentsForKey',
+      'findDuplicateKeys',
       'generateMarkdownReport',
       'generatePdfReport',
       'getNormalizedObservations',
@@ -104,6 +106,7 @@ describe('ToolRegistry', () => {
       'getSuggestedQuestions',
       'getWorkbookProfile',
       'getWorkspaceContext',
+      'profileKeys',
       'runCalculation',
       'runTableQuery',
     ]);

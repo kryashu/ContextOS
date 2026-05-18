@@ -53,6 +53,8 @@ export interface ExtractedCommandData {
   workspaceName?: string;
   targetFiles?: string[];
   keyValues?: string[];
+  keyType?: string;
+  keyValue?: string;
   fields?: string[];
   filters?: CommandFilter[];
   aggregations?: CommandAggregation[];

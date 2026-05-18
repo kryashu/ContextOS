@@ -175,6 +175,39 @@ export function extractAggregateFields(command: string): CommandAggregation[] {
   return aggregations;
 }
 
+// ── Key type extraction ─────────────────────────────────────────────
+
+const KEY_TYPE_PHRASES: Array<{ phrases: string[]; keyType: string }> = [
+  { phrases: ['email', 'emails', 'e-mail', 'e-mails'], keyType: 'email' },
+  { phrases: ['phone number', 'phone numbers', 'phone', 'phones', 'mobile', 'mobiles'], keyType: 'phone' },
+  { phrases: ['product id', 'product ids', 'product code', 'product codes', 'sku', 'skus'], keyType: 'product_id' },
+  { phrases: ['user id', 'user ids'], keyType: 'user_id' },
+  { phrases: ['customer id', 'customer ids', 'client id', 'client ids'], keyType: 'customer_id' },
+  { phrases: ['employee id', 'employee ids', 'emp id', 'emp ids'], keyType: 'employee_id' },
+  { phrases: ['license number', 'license numbers', 'licence number', 'licence numbers', 'license', 'licenses', 'licence', 'licences'], keyType: 'license_number' },
+  { phrases: ['registration id', 'registration ids', 'registration number', 'registration numbers'], keyType: 'registration_id' },
+  { phrases: ['invoice number', 'invoice numbers', 'invoice', 'invoices'], keyType: 'invoice_number' },
+  { phrases: ['order id', 'order ids', 'order number', 'order numbers'], keyType: 'order_id' },
+  { phrases: ['serial number', 'serial numbers', 'serial'], keyType: 'serial_number' },
+  { phrases: ['batch number', 'batch numbers', 'lot number', 'lot numbers'], keyType: 'batch_number' },
+  { phrases: ['asset id', 'asset ids', 'asset tag', 'asset tags'], keyType: 'asset_id' },
+];
+
+/**
+ * Extract key type from command phrases like "duplicate emails" → "email"
+ */
+export function extractKeyType(command: string): string | null {
+  const lower = command.toLowerCase();
+  for (const { phrases, keyType } of KEY_TYPE_PHRASES) {
+    for (const phrase of phrases) {
+      if (lower.includes(phrase)) {
+        return keyType;
+      }
+    }
+  }
+  return null;
+}
+
 // ── Filter expression extraction ────────────────────────────────────
 
 export function extractFilterExpressions(command: string): CommandFilter[] {

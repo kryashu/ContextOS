@@ -38,6 +38,9 @@ export { runCalculation } from './tools/run-calculation.js';
 export { generateMarkdownReport } from './tools/generate-markdown-report.js';
 export { generatePdfReport } from './tools/generate-pdf-report.js';
 export { runTableQuery } from './tools/run-table-query.js';
+export { profileKeys } from './tools/profile-keys.js';
+export { findDuplicateKeys } from './tools/find-duplicate-keys.js';
+export { findDocumentsForKey } from './tools/find-documents-for-key.js';
 
 // ── Register all tools on import ────────────────────────────────────
 import { registerAllTools } from './register-all.js';

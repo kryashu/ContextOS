@@ -25,14 +25,14 @@ const INTENT_PATTERNS: IntentPattern[] = [
   // ── Future engines (planned_only) ─────────────────────────────────
   {
     intent: 'duplicate_key_query',
-    status: 'planned_only',
+    status: 'executable',
     confidence: 'high',
     keywords: [
       'duplicate', 'duplicates', 'find duplicate', 'detect duplicate',
       'duplicate key', 'duplicate email', 'duplicate id',
+      'duplicate phone', 'duplicate license', 'duplicate product',
     ],
-    requiredCapabilities: ['generic_key_intelligence_engine'],
-    nextStep: 'The Generic Key Intelligence Engine is not implemented yet.',
+    requiredCapabilities: [],
   },
   {
     intent: 'table_aggregate_query',

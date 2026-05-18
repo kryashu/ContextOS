@@ -1,5 +1,5 @@
 {
-  "name": "@contextos/tools",
+  "name": "@contextos/key-intelligence",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,10 +19,9 @@
   },
   "dependencies": {
     "@contextos/types": "workspace:*",
-    "@contextos/qa": "workspace:*",
-    "@contextos/calculator": "workspace:*",
     "@contextos/table-query": "workspace:*",
-    "@contextos/key-intelligence": "workspace:*",
+    "csv-parse": "^5.5.5",
+    "xlsx": "0.18.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {

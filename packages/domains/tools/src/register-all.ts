@@ -12,6 +12,9 @@ import { runCalculation } from './tools/run-calculation.js';
 import { generateMarkdownReport } from './tools/generate-markdown-report.js';
 import { generatePdfReport } from './tools/generate-pdf-report.js';
 import { runTableQuery } from './tools/run-table-query.js';
+import { profileKeys } from './tools/profile-keys.js';
+import { findDuplicateKeys } from './tools/find-duplicate-keys.js';
+import { findDocumentsForKey } from './tools/find-documents-for-key.js';
 
 export function registerAllTools(): void {
   toolRegistry.register(checkAnalysisState);
@@ -26,4 +29,7 @@ export function registerAllTools(): void {
   toolRegistry.register(generateMarkdownReport);
   toolRegistry.register(generatePdfReport);
   toolRegistry.register(runTableQuery);
+  toolRegistry.register(profileKeys);
+  toolRegistry.register(findDuplicateKeys);
+  toolRegistry.register(findDocumentsForKey);
 }

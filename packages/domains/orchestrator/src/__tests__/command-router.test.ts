@@ -43,8 +43,8 @@ describe('routeCommand', () => {
   it('routes duplicate key query', () => {
     const r = routeCommand('Find duplicate emails across all Excel files');
     expect(r.intent).toBe('duplicate_key_query');
-    expect(r.status).toBe('planned_only');
-    expect(r.requiredCapabilities).toContain('generic_key_intelligence_engine');
+    expect(r.status).toBe('executable');
+    expect(r.requiredCapabilities).toEqual([]);
   });
 
   it('routes unknown command to needs_clarification', () => {

@@ -36,8 +36,8 @@ describe('createWorkspaceCommandPlan', () => {
   it('plans duplicate key query', () => {
     const plan = createWorkspaceCommandPlan('Find duplicate emails across all Excel files');
     expect(plan.intent).toBe('duplicate_key_query');
-    expect(plan.status).toBe('planned_only');
-    expect(plan.requiredCapabilities).toContain('generic_key_intelligence_engine');
+    expect(plan.status).toBe('executable');
+    expect(plan.extracted.keyType).toBe('email');
   });
 
   it('plans document lookup with key value extraction', () => {
@@ -45,6 +45,7 @@ describe('createWorkspaceCommandPlan', () => {
     expect(plan.intent).toBe('document_lookup');
     expect(plan.status).toBe('executable');
     expect(plan.extracted.keyValues).toContain('ABC-123');
+    expect(plan.extracted.keyValue).toBe('ABC-123');
   });
 
   it('returns needs_clarification for unknown command', () => {
@@ -60,9 +61,8 @@ describe('createWorkspaceCommandPlan', () => {
     expect(plan.warnings.some(w => w.includes('short'))).toBe(true);
   });
 
-  it('includes planned_only warning for unimplemented engines', () => {
+  it('plans duplicate key query as executable', () => {
     const plan = createWorkspaceCommandPlan('Find duplicate emails across all Excel files');
-    expect(plan.status).toBe('planned_only');
-    expect(plan.warnings.some(w => w.includes('not yet implemented'))).toBe(true);
+    expect(plan.status).toBe('executable');
   });
 });

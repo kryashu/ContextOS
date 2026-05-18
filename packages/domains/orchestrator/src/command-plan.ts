@@ -5,6 +5,7 @@ import {
   extractPossibleKeyValues,
   extractAggregateFields,
   extractFilterExpressions,
+  extractKeyType,
 } from './command-parser.js';
 
 let commandCounter = 0;
@@ -37,17 +38,30 @@ export function createWorkspaceCommandPlan(command: string): WorkspaceCommandPla
   const warnings = buildWarnings(command, route);
   const summary = INTENT_SUMMARIES[route.intent] ?? 'Unknown command.';
 
+  // Guard: document_lookup/evidence_lookup without a key value → needs_clarification
+  let status = route.status;
+  let nextStep = route.nextStep;
+  if (
+    (route.intent === 'document_lookup' || route.intent === 'evidence_lookup') &&
+    status === 'executable' &&
+    !extracted.keyValue &&
+    (!extracted.keyValues || extracted.keyValues.length === 0)
+  ) {
+    status = 'needs_clarification';
+    nextStep = 'Please specify which key or identifier to search for (e.g. product ABC-123, license LIC-2025-88).';
+  }
+
   return {
     commandId: generateCommandId(),
     originalCommand: command,
     intent: route.intent,
-    status: route.status,
+    status,
     confidence: route.confidence,
     summary,
     extracted,
     requiredCapabilities: route.requiredCapabilities,
     warnings,
-    nextStep: route.nextStep,
+    nextStep,
   };
 }
 
@@ -61,10 +75,20 @@ function buildExtracted(command: string, intent: string): ExtractedCommandData {
     extracted.keyValues = keyValues;
   }
 
-  if (
-    intent === 'table_aggregate_query' ||
-    intent === 'duplicate_key_query'
-  ) {
+  if (intent === 'duplicate_key_query') {
+    // Extract key type from phrases like "duplicate emails" → "email"
+    const keyType = extractKeyType(command);
+    if (keyType) {
+      extracted.keyType = keyType;
+    }
+
+    const filters = extractFilterExpressions(command);
+    if (filters.length > 0) {
+      extracted.filters = filters;
+    }
+  }
+
+  if (intent === 'table_aggregate_query') {
     const filters = extractFilterExpressions(command);
     if (filters.length > 0) {
       extracted.filters = filters;
@@ -76,11 +100,22 @@ function buildExtracted(command: string, intent: string): ExtractedCommandData {
     }
   }
 
-  // Date filters for evidence/document lookups too
-  if (intent === 'evidence_lookup' || intent === 'document_lookup') {
+  // For document/evidence lookup, extract key value for routing
+  if (intent === 'document_lookup' || intent === 'evidence_lookup') {
     const dateFilters = extractDates(command);
     if (dateFilters.length > 0) {
       extracted.filters = dateFilters;
+    }
+
+    // Use first extracted key value as the lookup target
+    if (keyValues.length > 0) {
+      extracted.keyValue = keyValues[0];
+    }
+
+    // Also try to detect key type
+    const keyType = extractKeyType(command);
+    if (keyType) {
+      extracted.keyType = keyType;
     }
   }
 

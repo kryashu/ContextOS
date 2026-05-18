@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, runTableQueryAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
+import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, runTableQueryAction, findDuplicateKeysAction, findDocumentsForKeyAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
 import WorkspaceAgentPanel from '@/components/WorkspaceAgentPanel';
 import WorkspaceSummary from '@/components/WorkspaceSummary';
@@ -276,6 +276,14 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         runTableQueryAction={async (filters, aggregations, fileScope?, includeRows?) => {
           'use server';
           return runTableQueryAction(workspace.id, filters, aggregations, fileScope, includeRows);
+        }}
+        findDuplicateKeysAction={async (keyType?: string) => {
+          'use server';
+          return findDuplicateKeysAction(workspace.id, keyType);
+        }}
+        findDocumentsForKeyAction={async (value: string, keyType?: string) => {
+          'use server';
+          return findDocumentsForKeyAction(workspace.id, value, keyType);
         }}
       />
 

@@ -528,3 +528,55 @@ export async function runTableQueryAction(
     return { success: false, error: 'Table query failed. Please try again.' };
   }
 }
+
+// ── Key Intelligence ────────────────────────────────────────────────
+
+import type { KeyIntelligenceResult } from '@contextos/key-intelligence';
+
+export async function findDuplicateKeysAction(
+  workspaceId: string,
+  keyType?: string,
+): Promise<{ success: boolean; result?: KeyIntelligenceResult; error?: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'Workspace not found.' };
+    }
+
+    const result = await toolRegistry.executeTool('findDuplicateKeys', {
+      workspaceId,
+      keyType,
+    });
+
+    return { success: true, result: result as KeyIntelligenceResult };
+  } catch {
+    return { success: false, error: 'Duplicate key detection failed. Please try again.' };
+  }
+}
+
+export async function findDocumentsForKeyAction(
+  workspaceId: string,
+  value: string,
+  keyType?: string,
+): Promise<{ success: boolean; result?: KeyIntelligenceResult; error?: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'Workspace not found.' };
+    }
+
+    if (!value || value.trim().length === 0) {
+      return { success: false, error: 'A key value is required for document lookup.' };
+    }
+
+    const result = await toolRegistry.executeTool('findDocumentsForKey', {
+      workspaceId,
+      value: value.trim(),
+      keyType,
+    });
+
+    return { success: true, result: result as KeyIntelligenceResult };
+  } catch {
+    return { success: false, error: 'Document lookup failed. Please try again.' };
+  }
+}

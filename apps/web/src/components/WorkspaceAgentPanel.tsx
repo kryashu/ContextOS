@@ -4,11 +4,13 @@ import { useState, useTransition } from 'react';
 import type { AgentRunResult } from '@contextos/agents';
 import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
 import type { TableQueryResult } from '@contextos/table-query';
+import type { KeyIntelligenceResult } from '@contextos/key-intelligence';
 import { Card, Button } from '@contextos/ui';
 import { PRESET_GOALS } from './agent/preset-goals';
 import AgentResultDisplay from './agent/AgentResultDisplay';
 import CommandPlanPreview from './agent/CommandPlanPreview';
 import TableQueryResultDisplay from './agent/TableQueryResultDisplay';
+import KeyIntelligenceResultDisplay from './agent/KeyIntelligenceResultDisplay';
 
 type AnalysisState = 'none' | 'stale' | 'current' | 'failed';
 
@@ -28,6 +30,13 @@ interface WorkspaceAgentPanelProps {
     fileScope?: string[],
     includeRows?: boolean,
   ) => Promise<{ success: boolean; result?: TableQueryResult; error?: string }>;
+  findDuplicateKeysAction: (
+    keyType?: string,
+  ) => Promise<{ success: boolean; result?: KeyIntelligenceResult; error?: string }>;
+  findDocumentsForKeyAction: (
+    value: string,
+    keyType?: string,
+  ) => Promise<{ success: boolean; result?: KeyIntelligenceResult; error?: string }>;
 }
 
 const DISABLED_MESSAGES: Partial<Record<AnalysisState, string>> = {
@@ -41,12 +50,15 @@ export default function WorkspaceAgentPanel({
   runAgentAction,
   planCommandAction,
   runTableQueryAction,
+  findDuplicateKeysAction,
+  findDocumentsForKeyAction,
 }: WorkspaceAgentPanelProps) {
   const [goal, setGoal] = useState('');
   const [allowWrites, setAllowWrites] = useState(false);
   const [plan, setPlan] = useState<WorkspaceCommandPlan | null>(null);
   const [result, setResult] = useState<AgentRunResult | null>(null);
   const [tableResult, setTableResult] = useState<TableQueryResult | null>(null);
+  const [keyIntelligenceResult, setKeyIntelligenceResult] = useState<KeyIntelligenceResult | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -55,12 +67,15 @@ export default function WorkspaceAgentPanel({
   const disabledMessage = DISABLED_MESSAGES[analysisState];
   const canExecute = plan?.status === 'executable';
   const isTableQuery = plan?.intent === 'table_aggregate_query';
+  const isDuplicateKeyQuery = plan?.intent === 'duplicate_key_query';
+  const isDocumentLookup = (plan?.intent === 'document_lookup' || plan?.intent === 'evidence_lookup') && plan?.extracted?.keyValue;
 
   function handlePlan() {
     if (!goal.trim() || isDisabled) return;
     setError(null);
     setResult(null);
     setTableResult(null);
+    setKeyIntelligenceResult(null);
     setPlan(null);
 
     startTransition(async () => {
@@ -78,9 +93,24 @@ export default function WorkspaceAgentPanel({
     setError(null);
     setResult(null);
     setTableResult(null);
+    setKeyIntelligenceResult(null);
 
     startTransition(async () => {
-      if (isTableQuery && plan?.extracted) {
+      if (isDuplicateKeyQuery) {
+        const response = await findDuplicateKeysAction(plan?.extracted?.keyType);
+        if (response.success && response.result) {
+          setKeyIntelligenceResult(response.result);
+        } else {
+          setError(response.error ?? 'Duplicate key detection failed.');
+        }
+      } else if (isDocumentLookup && plan?.extracted?.keyValue) {
+        const response = await findDocumentsForKeyAction(plan.extracted.keyValue, plan.extracted.keyType);
+        if (response.success && response.result) {
+          setKeyIntelligenceResult(response.result);
+        } else {
+          setError(response.error ?? 'Document lookup failed.');
+        }
+      } else if (isTableQuery && plan?.extracted) {
         const filters = (plan.extracted.filters ?? []).map((f) => ({
           field: f.field,
           operator: f.operator,
@@ -231,6 +261,7 @@ export default function WorkspaceAgentPanel({
       {/* Result */}
       {result && <AgentResultDisplay result={result} generatedAt={generatedAt} />}
       {tableResult && <TableQueryResultDisplay result={tableResult} />}
+      {keyIntelligenceResult && <KeyIntelligenceResultDisplay result={keyIntelligenceResult} />}
     </Card>
   );
 }

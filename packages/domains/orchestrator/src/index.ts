@@ -23,6 +23,7 @@ export {
   extractAggregateFields,
   extractFilterExpressions,
   detectAggregationOperation,
+  extractKeyType,
 } from './command-parser.js';
 
 // ── Plan builder ────────────────────────────────────────────────────
