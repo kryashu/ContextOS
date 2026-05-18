@@ -8,23 +8,12 @@ import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
 import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, runTableQueryAction, findDuplicateKeysAction, findDocumentsForKeyAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
 import WorkspaceAgentPanel from '@/components/WorkspaceAgentPanel';
-import WorkspaceSummary from '@/components/WorkspaceSummary';
-import SourceInventory from '@/components/SourceInventory';
-import EntityTable from '@/components/EntityTable';
-import RelationshipTable from '@/components/RelationshipTable';
-import FindingsPanel from '@/components/FindingsPanel';
-import MermaidDiagram from '@/components/MermaidDiagram';
+import AdvancedAnalysisSection from '@/components/AdvancedAnalysisSection';
+import AgentArtifactLinks from '@/components/agent/AgentArtifactLinks';
 import RunAnalysisButton from '@/components/RunAnalysisButton';
 import FileUpload from '@/components/FileUpload';
 import SourceFileList from '@/components/SourceFileList';
 import DeleteWorkspaceButton from '@/components/DeleteWorkspaceButton';
-import WorkbookProfileView from '@/components/WorkbookProfileView';
-import CalculationPanel from '@/components/CalculationPanel';
-import WorkspaceContextReport from '@/components/WorkspaceContextReport';
-import SourceProfileTable from '@/components/SourceProfileTable';
-import SourceRelationshipPanel from '@/components/SourceRelationshipPanel';
-import WorkspaceQA from '@/components/WorkspaceQA';
-import ReportPanel from '@/components/ReportPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -304,94 +293,18 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         />
       )}
 
-      {/* Analysis Results — only render when manifest exists and state is current or stale */}
-      {(analysisState === 'current' || analysisState === 'stale') && summary && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 24,
-          opacity: analysisState === 'stale' ? 0.7 : 1,
-        }}>
-          {workspaceCtx && <WorkspaceContextReport context={workspaceCtx} />}
-          {sourceProfilesData ? <SourceProfileTable profiles={sourceProfilesData} /> : (
-            <EmptyState icon="📋" title="No source profiles available." subtitle="Source profiles are generated during analysis." />
-          )}
-          {sourceRelationships ? <SourceRelationshipPanel data={sourceRelationships} /> : (
-            <EmptyState icon="🔗" title="No source relationships available." subtitle="Relationships are detected during analysis." />
-          )}
-          <WorkspaceSummary data={summary} />
-          <SourceInventory data={summary} />
-          {graph && <EntityTable nodes={graph.nodes ?? []} />}
-          {graph && <RelationshipTable edges={graph.edges ?? []} nodes={graph.nodes ?? []} />}
-          {findings && <FindingsPanel findings={findings} />}
-          {dfdContent && <MermaidDiagram content={dfdContent} />}
-        </div>
-      )}
-
-      {/* Workbook Intelligence — only when manifest confirms it */}
-      {(analysisState === 'current' || analysisState === 'stale') && workbookProfile && (
-        <Card style={{
-          padding: 20,
-          marginTop: summary ? 24 : 0,
-          opacity: analysisState === 'stale' ? 0.7 : 1,
-        }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📊 Workbook Profile</h2>
-          <WorkbookProfileView profile={workbookProfile} observationCount={normalizedObs?.length ?? 0} />
-        </Card>
-      )}
-
-      {/* Calculation Engine — when observations are available */}
-      {(analysisState === 'current' || analysisState === 'stale') && normalizedObs && normalizedObs.length > 0 && (
-        <Card style={{
-          padding: 20,
-          marginTop: 24,
-          opacity: analysisState === 'stale' ? 0.7 : 1,
-        }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>🧮 Table Calculations</h2>
-          <CalculationPanel
-            workspaceId={workspace.id}
-            metrics={candidateMetrics}
-            filterOptions={calcFilterOptions}
-            analysisState={analysisState}
-          />
-        </Card>
-      )}
-
-      {/* Workspace Q&A */}
+      {/* Generated artifacts — compact download links */}
       {(analysisState === 'current' || analysisState === 'stale') && (
-        <Card style={{
-          padding: 20,
-          marginTop: 24,
-          opacity: analysisState === 'stale' ? 0.7 : 1,
-        }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>💬 Workspace Q&amp;A</h2>
-          <WorkspaceQA workspaceId={workspace.id} analysisState={analysisState} />
-        </Card>
-      )}
-
-      {/* Workspace Report Export */}
-      {(analysisState === 'current' || analysisState === 'stale') && (
-        <Card style={{
-          padding: 20,
-          marginTop: 24,
-          opacity: analysisState === 'stale' ? 0.7 : 1,
-        }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>📄 Workspace Report</h2>
-          <ReportPanel
-            workspaceId={workspace.id}
+        hasArtifact('hasReport', 'workspace-report.md') || hasArtifact('hasPdf', 'workspace-report.pdf')
+      ) && (
+        <Card style={{ padding: 16, marginBottom: 24 }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 15, color: 'var(--color-fg)' }}>📎 Generated Reports</h3>
+          <AgentArtifactLinks
             hasReport={hasArtifact('hasReport', 'workspace-report.md')}
             hasPdf={hasArtifact('hasPdf', 'workspace-report.pdf')}
-            generateAction={async () => {
-              'use server';
-              return generateReportAction(workspace.id);
-            }}
             downloadAction={async () => {
               'use server';
               return downloadReportAction(workspace.id);
-            }}
-            generatePdfAction={async () => {
-              'use server';
-              return generatePdfReportAction(workspace.id);
             }}
             downloadPdfAction={async () => {
               'use server';
@@ -400,6 +313,41 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
           />
         </Card>
       )}
+
+      {/* Advanced Analysis — collapsed by default */}
+      <AdvancedAnalysisSection
+        analysisState={analysisState}
+        workspaceId={workspace.id}
+        summary={summary}
+        workspaceCtx={workspaceCtx}
+        sourceProfilesData={sourceProfilesData}
+        sourceRelationships={sourceRelationships}
+        graph={graph}
+        findings={findings}
+        dfdContent={dfdContent}
+        workbookProfile={workbookProfile}
+        normalizedObs={normalizedObs}
+        candidateMetrics={candidateMetrics}
+        calcFilterOptions={calcFilterOptions}
+        hasReport={hasArtifact('hasReport', 'workspace-report.md')}
+        hasPdf={hasArtifact('hasPdf', 'workspace-report.pdf')}
+        generateAction={async () => {
+          'use server';
+          return generateReportAction(workspace.id);
+        }}
+        downloadAction={async () => {
+          'use server';
+          return downloadReportAction(workspace.id);
+        }}
+        generatePdfAction={async () => {
+          'use server';
+          return generatePdfReportAction(workspace.id);
+        }}
+        downloadPdfAction={async () => {
+          'use server';
+          return downloadPdfReportAction(workspace.id);
+        }}
+      />
     </div>
   );
 }
