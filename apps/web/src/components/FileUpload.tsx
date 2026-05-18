@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { uploadFilesAction, type FileResult } from '@/app/workspaces/actions';
 
 const REJECTION_LABELS: Record<string, string> = {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function FileUpload({ workspaceId }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ success: boolean; message: string; fileResults?: FileResult[] } | null>(null);
 
@@ -33,7 +35,7 @@ export default function FileUpload({ workspaceId }: Props) {
       const res = await uploadFilesAction(workspaceId, formData);
       setResult(res);
       if (res.success && res.fileCount > 0) {
-        window.location.reload();
+        router.refresh();
       }
     });
 

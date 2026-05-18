@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { listWorkspaces } from '@/lib/workspaces';
-import { formatRelativeTime } from '@/lib/utils';
+import RelativeTime from '@/components/RelativeTime';
 import DeleteWorkspaceCardButton from '@/components/DeleteWorkspaceCardButton';
 import { Badge, Button } from '@contextos/ui';
 
@@ -55,7 +55,7 @@ export default function WorkspacesPage() {
               )}
               <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--color-muted)' }}>
                 <span>📄 {ws.sourceCount} sources</span>
-                <span>🕐 {formatRelativeTime(ws.updatedAt)}</span>
+                <span>🕐 <RelativeTime dateStr={ws.updatedAt} /></span>
               </div>
             </div>
           </Link>

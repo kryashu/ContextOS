@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@contextos/ui';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function RunAnalysisButton({ action }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -18,7 +20,7 @@ export default function RunAnalysisButton({ action }: Props) {
       setResult(res);
       // Refresh the page to reload server-component data
       if (res.success) {
-        window.location.reload();
+        router.refresh();
       }
     });
   }

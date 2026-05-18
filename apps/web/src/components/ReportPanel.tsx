@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@contextos/ui';
 
 interface Props {
@@ -22,6 +23,7 @@ export default function ReportPanel({
   generatePdfAction,
   downloadPdfAction,
 }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export default function ReportPanel({
       const res = await generateAction();
       if (res.success) {
         setSuccess('Report generated successfully.');
-        window.location.reload();
+        router.refresh();
       } else {
         setError(res.message);
       }
@@ -65,7 +67,7 @@ export default function ReportPanel({
     startTransition(async () => {
       const res = await generatePdfAction();
       if (res.success) {
-        window.location.reload();
+        router.refresh();
       } else {
         setError(res.message);
       }

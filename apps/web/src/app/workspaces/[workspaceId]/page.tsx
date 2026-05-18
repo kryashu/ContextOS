@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { notFound } from 'next/navigation';
 
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
-import { formatRelativeTime } from '@/lib/utils';
+import RelativeTime from '@/components/RelativeTime';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
 import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, runTableQueryAction, findDuplicateKeysAction, findDocumentsForKeyAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
@@ -228,7 +228,7 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
             {workspace.description || workspace.id}
             {generatedAt && analysisState === 'current' && (
               <span style={{ marginLeft: 12 }}>
-                🕐 Generated {formatRelativeTime(generatedAt)}
+                🕐 Generated <RelativeTime dateStr={generatedAt} />
               </span>
             )}
           </p>

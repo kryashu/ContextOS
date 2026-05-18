@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@contextos/ui';
 
 export default function ThemeToggle() {
+  const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
@@ -12,6 +13,7 @@ export default function ThemeToggle() {
       setTheme(saved);
       document.documentElement.dataset.theme = saved;
     }
+    setMounted(true);
   }, []);
 
   function toggle() {
@@ -25,9 +27,9 @@ export default function ThemeToggle() {
     <Button
       variant="ghost"
       onClick={toggle}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      title={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle theme'}
     >
-      {theme === 'dark' ? '☀️' : '🌙'}
+      {mounted ? (theme === 'dark' ? '☀️' : '🌙') : '☀️'}
     </Button>
   );
 }
