@@ -23,7 +23,7 @@ describe('createWorkspaceCommandPlan', () => {
       'Calculate total units sold before 5 May 2025 for all products',
     );
     expect(plan.intent).toBe('table_aggregate_query');
-    expect(plan.status).toBe('planned_only');
+    expect(plan.status).toBe('executable');
     expect(plan.requiredCapabilities).toContain('smart_table_query_engine');
     expect(plan.extracted.filters).toBeDefined();
     expect(plan.extracted.filters!.length).toBeGreaterThanOrEqual(1);
@@ -61,7 +61,7 @@ describe('createWorkspaceCommandPlan', () => {
   });
 
   it('includes planned_only warning for unimplemented engines', () => {
-    const plan = createWorkspaceCommandPlan('calculate total units in transit');
+    const plan = createWorkspaceCommandPlan('Find duplicate emails across all Excel files');
     expect(plan.status).toBe('planned_only');
     expect(plan.warnings.some(w => w.includes('not yet implemented'))).toBe(true);
   });

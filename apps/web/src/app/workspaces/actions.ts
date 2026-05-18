@@ -23,6 +23,7 @@ import { WorkspaceAnalystAgent } from '@contextos/agents';
 import type { AgentRunResult } from '@contextos/agents';
 import { createWorkspaceCommandPlan } from '@contextos/orchestrator';
 import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
+import type { TableQueryResult } from '@contextos/table-query';
 import type { WorkspaceAnswer } from '@contextos/types';
 
 /** Monorepo root — apps/web -> apps -> root */
@@ -492,5 +493,38 @@ export async function planWorkspaceCommandAction(
     return { success: true, plan };
   } catch {
     return { success: false, error: 'Failed to plan command. Please try again.' };
+  }
+}
+
+// ── Table Query ─────────────────────────────────────────────────────
+
+export async function runTableQueryAction(
+  workspaceId: string,
+  filters: Array<{ field: string; operator: string; value: string | number }>,
+  aggregations: Array<{ field: string; operation: string; label?: string }>,
+  fileScope?: string[],
+  includeRows?: boolean,
+): Promise<{ success: boolean; result?: TableQueryResult; error?: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'Workspace not found.' };
+    }
+
+    if (!aggregations || aggregations.length === 0) {
+      return { success: false, error: 'At least one aggregation is required.' };
+    }
+
+    const result = await toolRegistry.executeTool('runTableQuery', {
+      workspaceId,
+      filters: filters ?? [],
+      aggregations,
+      fileScope,
+      includeRows,
+    });
+
+    return { success: true, result: result as TableQueryResult };
+  } catch {
+    return { success: false, error: 'Table query failed. Please try again.' };
   }
 }

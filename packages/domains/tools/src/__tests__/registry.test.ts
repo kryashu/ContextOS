@@ -89,9 +89,9 @@ describe('ToolRegistry', () => {
     cleanup();
   });
 
-  it('lists all 11 expected tools', () => {
+  it('lists all 12 expected tools', () => {
     const tools = toolRegistry.listTools();
-    expect(tools).toHaveLength(11);
+    expect(tools).toHaveLength(12);
     const ids = tools.map((t) => t.id).sort();
     expect(ids).toEqual([
       'askWorkspaceQuestion',
@@ -105,6 +105,7 @@ describe('ToolRegistry', () => {
       'getWorkbookProfile',
       'getWorkspaceContext',
       'runCalculation',
+      'runTableQuery',
     ]);
   });
 

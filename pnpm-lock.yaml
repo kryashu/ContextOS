@@ -41,6 +41,9 @@ importers:
       '@contextos/qa':
         specifier: workspace:*
         version: link:../../packages/domains/qa
+      '@contextos/table-query':
+        specifier: workspace:*
+        version: link:../../packages/domains/table-query
       '@contextos/tools':
         specifier: workspace:*
         version: link:../../packages/domains/tools
@@ -341,6 +344,28 @@ importers:
         specifier: ^1.5.0
         version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
 
+  packages/domains/table-query:
+    dependencies:
+      '@contextos/types':
+        specifier: workspace:*
+        version: link:../../shared/types
+      csv-parse:
+        specifier: ^5.5.5
+        version: 5.6.0
+      xlsx:
+        specifier: 0.18.5
+        version: 0.18.5
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.5.0
+        version: 1.6.1(@types/node@20.19.40)(jsdom@25.0.1)
+
   packages/domains/tools:
     dependencies:
       '@contextos/calculator':
@@ -349,6 +374,9 @@ importers:
       '@contextos/qa':
         specifier: workspace:*
         version: link:../qa
+      '@contextos/table-query':
+        specifier: workspace:*
+        version: link:../table-query
       '@contextos/types':
         specifier: workspace:*
         version: link:../../shared/types

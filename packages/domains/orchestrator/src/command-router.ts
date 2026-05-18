@@ -36,7 +36,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
   },
   {
     intent: 'table_aggregate_query',
-    status: 'planned_only',
+    status: 'executable',
     confidence: 'high',
     keywords: [
       'calculate total', 'sum of', 'total units', 'aggregate',
@@ -44,7 +44,6 @@ const INTENT_PATTERNS: IntentPattern[] = [
       'how many', 'min of', 'max of',
     ],
     requiredCapabilities: ['smart_table_query_engine'],
-    nextStep: 'The Smart Table Query Engine is not implemented yet.',
   },
 
   // ── Executable intents ────────────────────────────────────────────

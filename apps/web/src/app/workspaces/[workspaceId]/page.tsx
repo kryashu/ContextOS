@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
+import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, runTableQueryAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
 import WorkspaceAgentPanel from '@/components/WorkspaceAgentPanel';
 import WorkspaceSummary from '@/components/WorkspaceSummary';
@@ -272,6 +272,10 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
         planCommandAction={async (command: string) => {
           'use server';
           return planWorkspaceCommandAction(workspace.id, command);
+        }}
+        runTableQueryAction={async (filters, aggregations, fileScope?, includeRows?) => {
+          'use server';
+          return runTableQueryAction(workspace.id, filters, aggregations, fileScope, includeRows);
         }}
       />
 

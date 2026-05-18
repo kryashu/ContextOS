@@ -37,6 +37,7 @@ export { askWorkspaceQuestion } from './tools/ask-workspace-question.js';
 export { runCalculation } from './tools/run-calculation.js';
 export { generateMarkdownReport } from './tools/generate-markdown-report.js';
 export { generatePdfReport } from './tools/generate-pdf-report.js';
+export { runTableQuery } from './tools/run-table-query.js';
 
 // ── Register all tools on import ────────────────────────────────────
 import { registerAllTools } from './register-all.js';

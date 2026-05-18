@@ -11,6 +11,7 @@ import { askWorkspaceQuestion } from './tools/ask-workspace-question.js';
 import { runCalculation } from './tools/run-calculation.js';
 import { generateMarkdownReport } from './tools/generate-markdown-report.js';
 import { generatePdfReport } from './tools/generate-pdf-report.js';
+import { runTableQuery } from './tools/run-table-query.js';
 
 export function registerAllTools(): void {
   toolRegistry.register(checkAnalysisState);
@@ -24,4 +25,5 @@ export function registerAllTools(): void {
   toolRegistry.register(runCalculation);
   toolRegistry.register(generateMarkdownReport);
   toolRegistry.register(generatePdfReport);
+  toolRegistry.register(runTableQuery);
 }

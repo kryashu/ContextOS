@@ -36,7 +36,7 @@ describe('routeCommand', () => {
   it('routes table aggregate query', () => {
     const r = routeCommand('Find all products launched before 5 May 2025 and calculate total units sold');
     expect(r.intent).toBe('table_aggregate_query');
-    expect(r.status).toBe('planned_only');
+    expect(r.status).toBe('executable');
     expect(r.requiredCapabilities).toContain('smart_table_query_engine');
   });
 

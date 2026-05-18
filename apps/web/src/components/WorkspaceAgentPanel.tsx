@@ -3,10 +3,12 @@
 import { useState, useTransition } from 'react';
 import type { AgentRunResult } from '@contextos/agents';
 import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
+import type { TableQueryResult } from '@contextos/table-query';
 import { Card, Button } from '@contextos/ui';
 import { PRESET_GOALS } from './agent/preset-goals';
 import AgentResultDisplay from './agent/AgentResultDisplay';
 import CommandPlanPreview from './agent/CommandPlanPreview';
+import TableQueryResultDisplay from './agent/TableQueryResultDisplay';
 
 type AnalysisState = 'none' | 'stale' | 'current' | 'failed';
 
@@ -20,6 +22,12 @@ interface WorkspaceAgentPanelProps {
   planCommandAction: (
     command: string,
   ) => Promise<{ success: boolean; plan?: WorkspaceCommandPlan; error?: string }>;
+  runTableQueryAction: (
+    filters: Array<{ field: string; operator: string; value: string | number }>,
+    aggregations: Array<{ field: string; operation: string; label?: string }>,
+    fileScope?: string[],
+    includeRows?: boolean,
+  ) => Promise<{ success: boolean; result?: TableQueryResult; error?: string }>;
 }
 
 const DISABLED_MESSAGES: Partial<Record<AnalysisState, string>> = {
@@ -32,11 +40,13 @@ export default function WorkspaceAgentPanel({
   analysisState,
   runAgentAction,
   planCommandAction,
+  runTableQueryAction,
 }: WorkspaceAgentPanelProps) {
   const [goal, setGoal] = useState('');
   const [allowWrites, setAllowWrites] = useState(false);
   const [plan, setPlan] = useState<WorkspaceCommandPlan | null>(null);
   const [result, setResult] = useState<AgentRunResult | null>(null);
+  const [tableResult, setTableResult] = useState<TableQueryResult | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -44,11 +54,13 @@ export default function WorkspaceAgentPanel({
   const isDisabled = analysisState !== 'current';
   const disabledMessage = DISABLED_MESSAGES[analysisState];
   const canExecute = plan?.status === 'executable';
+  const isTableQuery = plan?.intent === 'table_aggregate_query';
 
   function handlePlan() {
     if (!goal.trim() || isDisabled) return;
     setError(null);
     setResult(null);
+    setTableResult(null);
     setPlan(null);
 
     startTransition(async () => {
@@ -65,14 +77,34 @@ export default function WorkspaceAgentPanel({
     if (!goal.trim() || isDisabled || !canExecute) return;
     setError(null);
     setResult(null);
+    setTableResult(null);
 
     startTransition(async () => {
-      const response = await runAgentAction(goal.trim(), allowWrites);
-      if (response.success && response.result) {
-        setResult(response.result);
-        setGeneratedAt(new Date().toISOString());
+      if (isTableQuery && plan?.extracted) {
+        const filters = (plan.extracted.filters ?? []).map((f) => ({
+          field: f.field,
+          operator: f.operator,
+          value: f.value,
+        }));
+        const aggregations = (plan.extracted.aggregations ?? []).map((a) => ({
+          field: a.field,
+          operation: a.operation,
+          label: a.label,
+        }));
+        const response = await runTableQueryAction(filters, aggregations);
+        if (response.success && response.result) {
+          setTableResult(response.result);
+        } else {
+          setError(response.error ?? 'Table query failed.');
+        }
       } else {
-        setError(response.error ?? 'An unexpected error occurred.');
+        const response = await runAgentAction(goal.trim(), allowWrites);
+        if (response.success && response.result) {
+          setResult(response.result);
+          setGeneratedAt(new Date().toISOString());
+        } else {
+          setError(response.error ?? 'An unexpected error occurred.');
+        }
       }
     });
   }
@@ -198,6 +230,7 @@ export default function WorkspaceAgentPanel({
 
       {/* Result */}
       {result && <AgentResultDisplay result={result} generatedAt={generatedAt} />}
+      {tableResult && <TableQueryResultDisplay result={tableResult} />}
     </Card>
   );
 }
