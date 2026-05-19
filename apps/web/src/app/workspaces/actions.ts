@@ -19,8 +19,8 @@ import { TableCalculator } from '@contextos/calculator';
 import { WorkspaceAnswerComposer, LocalRetriever, WorkspaceReportGenerator, PdfReportRenderer } from '@contextos/qa';
 import { getModelForTask, TaskType } from '@contextos/ai';
 import { toolRegistry, setDataRoot } from '@contextos/tools';
-import { WorkspaceAnalystAgent } from '@contextos/agents';
-import type { AgentRunResult } from '@contextos/agents';
+import { WorkspaceAnalystAgent, WorkspaceCommandAgent } from '@contextos/agents';
+import type { AgentRunResult, WorkspaceAgentResponse } from '@contextos/agents';
 import { createWorkspaceCommandPlan } from '@contextos/orchestrator';
 import type { WorkspaceCommandPlan } from '@contextos/orchestrator';
 import type { TableQueryResult } from '@contextos/table-query';
@@ -579,5 +579,42 @@ export async function findDocumentsForKeyAction(
     return { success: true, result: result as KeyIntelligenceResult };
   } catch {
     return { success: false, error: 'Document lookup failed. Please try again.' };
+  }
+}
+
+// ── Workspace Command Agent (unified) ───────────────────────────────
+
+export async function runWorkspaceCommandAction(
+  workspaceId: string,
+  command: string,
+  allowWrites?: boolean,
+): Promise<{ success: boolean; result?: WorkspaceAgentResponse; error?: string }> {
+  try {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'Workspace not found.' };
+    }
+
+    const trimmed = command.trim();
+    if (!trimmed) {
+      return { success: false, error: 'Command cannot be empty.' };
+    }
+    if (trimmed.length > MAX_COMMAND_LENGTH) {
+      return { success: false, error: `Command must be ${MAX_COMMAND_LENGTH} characters or fewer.` };
+    }
+
+    const agent = new WorkspaceCommandAgent(
+      toolRegistry,
+      new WorkspaceAnalystAgent(toolRegistry),
+    );
+    const result = await agent.run({
+      workspaceId,
+      command: trimmed,
+      allowWrites: allowWrites ?? false,
+    });
+
+    return { success: true, result };
+  } catch {
+    return { success: false, error: 'The workspace command agent encountered an error. Please try again.' };
   }
 }

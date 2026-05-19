@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getWorkspace, getOutputDir, listSourceFiles, computeSourceHashes } from '@/lib/workspaces';
 import RelativeTime from '@/components/RelativeTime';
 import { Badge, Banner, EmptyState, Card } from '@contextos/ui';
-import { runWorkspaceAnalysis, runWorkspaceAgentAction, planWorkspaceCommandAction, runTableQueryAction, findDuplicateKeysAction, findDocumentsForKeyAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
+import { runWorkspaceAnalysis, runWorkspaceCommandAction, planWorkspaceCommandAction, generateReportAction, downloadReportAction, generatePdfReportAction, downloadPdfReportAction } from '../actions';
 
 import WorkspaceAgentPanel from '@/components/WorkspaceAgentPanel';
 import AdvancedAnalysisSection from '@/components/AdvancedAnalysisSection';
@@ -254,25 +254,13 @@ export default function WorkspaceDetailPage({ params }: PageProps) {
       <WorkspaceAgentPanel
         workspaceId={workspace.id}
         analysisState={analysisState}
-        runAgentAction={async (goal: string, allowWrites?: boolean) => {
+        runCommandAction={async (command: string, allowWrites?: boolean) => {
           'use server';
-          return runWorkspaceAgentAction(workspace.id, goal, allowWrites);
+          return runWorkspaceCommandAction(workspace.id, command, allowWrites);
         }}
         planCommandAction={async (command: string) => {
           'use server';
           return planWorkspaceCommandAction(workspace.id, command);
-        }}
-        runTableQueryAction={async (filters, aggregations, fileScope?, includeRows?) => {
-          'use server';
-          return runTableQueryAction(workspace.id, filters, aggregations, fileScope, includeRows);
-        }}
-        findDuplicateKeysAction={async (keyType?: string) => {
-          'use server';
-          return findDuplicateKeysAction(workspace.id, keyType);
-        }}
-        findDocumentsForKeyAction={async (value: string, keyType?: string) => {
-          'use server';
-          return findDocumentsForKeyAction(workspace.id, value, keyType);
         }}
       />
 
