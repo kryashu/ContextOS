@@ -158,6 +158,15 @@ importers:
 
   packages/domains/agents:
     dependencies:
+      '@contextos/key-intelligence':
+        specifier: workspace:*
+        version: link:../key-intelligence
+      '@contextos/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
+      '@contextos/table-query':
+        specifier: workspace:*
+        version: link:../table-query
       '@contextos/tools':
         specifier: workspace:*
         version: link:../tools
