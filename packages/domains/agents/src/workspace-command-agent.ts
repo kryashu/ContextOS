@@ -283,6 +283,7 @@ export class WorkspaceCommandAgent {
   ): Promise<WorkspaceAgentResponse> {
     const fileName = plan.extracted.fileName;
     const sourceHint = plan.extracted.sourceHint;
+    const rowRequest = plan.extracted.rowRequest;
 
     if (!fileName && !sourceHint) {
       trace.skip(
@@ -307,6 +308,7 @@ export class WorkspaceCommandAgent {
           workspaceId,
           fileName,
           sourceHint,
+          rowRequest,
         }) as Promise<ExplainSourceFileToolResult>,
     );
 
@@ -316,6 +318,7 @@ export class WorkspaceCommandAgent {
       intent: plan.intent,
       result,
       sourceHint,
+      rowRequest,
       toolTrace: trace.snapshot(),
     });
   }

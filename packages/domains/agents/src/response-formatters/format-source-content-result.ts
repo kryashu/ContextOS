@@ -1,4 +1,4 @@
-import type { CommandIntent } from '@contextos/orchestrator';
+import type { CommandIntent, RowRequest } from '@contextos/orchestrator';
 import type {
   WorkspaceAgentResponse,
   AgentResponseSection,
@@ -19,6 +19,11 @@ interface ExplainSourceFileSnippet {
   };
 }
 
+interface ExplainSourceFileRowFieldValue {
+  field: string;
+  value: string;
+}
+
 export interface ExplainSourceFileToolResult {
   status: 'success' | 'no_matches' | 'needs_clarification' | 'error';
   requestedFileName: string;
@@ -27,6 +32,10 @@ export interface ExplainSourceFileToolResult {
   snippets: ExplainSourceFileSnippet[];
   warnings: string[];
   alternatives?: string[];
+  rowContent?: ExplainSourceFileRowFieldValue[];
+  headers?: string[];
+  sampleRows?: Array<Record<string, string>>;
+  dataRow?: number;
 }
 
 export interface FormatSourceContentResultInput {
@@ -41,6 +50,8 @@ export interface FormatSourceContentResultInput {
    * friendlier clarification message that acknowledges the hint.
    */
   sourceHint?: string;
+  /** Original row request, used for friendlier clarification copy. */
+  rowRequest?: RowRequest;
 }
 
 const MAX_SOURCE_REFS = 25;
@@ -81,6 +92,38 @@ export function formatSourceContentResult(
     kind: 'text',
     content: result.summary,
   });
+
+  // Row-content table (first/last/number on a CSV)
+  if (result.rowContent && result.rowContent.length > 0) {
+    const dataRow = result.dataRow ?? 1;
+    sections.push({
+      title: `Row contents (data row ${dataRow})`,
+      kind: 'table',
+      content: {
+        columns: ['Field', 'Value'],
+        rows: result.rowContent.map((rc) => ({ Field: rc.field, Value: rc.value })),
+      },
+    });
+  } else if (result.headers && result.headers.length > 0 && !result.sampleRows) {
+    // headers-only request
+    sections.push({
+      title: `Headers (${result.headers.length} column${result.headers.length === 1 ? '' : 's'})`,
+      kind: 'table',
+      content: {
+        columns: ['#', 'Column'],
+        rows: result.headers.map((h, i) => ({ '#': String(i + 1), Column: h })),
+      },
+    });
+  } else if (result.sampleRows && result.sampleRows.length > 0 && result.headers) {
+    sections.push({
+      title: `Sample rows (${result.sampleRows.length})`,
+      kind: 'table',
+      content: {
+        columns: result.headers,
+        rows: result.sampleRows,
+      },
+    });
+  }
 
   if (result.snippets.length > 0) {
     const evidenceContent: EvidenceSectionContent = {
@@ -123,19 +166,32 @@ export function formatSourceContentResult(
   });
 }
 
+function rowRequestLabel(rowRequest: RowRequest | undefined): string {
+  if (!rowRequest) return 'details';
+  switch (rowRequest.type) {
+    case 'first': return 'the first row';
+    case 'last': return 'the last row';
+    case 'number': return `row ${rowRequest.rowNumber ?? '?'}`;
+    case 'headers': return 'the headers';
+    case 'sample': return 'sample rows';
+    default: return 'details';
+  }
+}
+
 function buildNeedsClarification(
   input: FormatSourceContentResultInput,
 ): WorkspaceAgentResponse {
-  const { result, toolTrace, intent } = input;
+  const { result, toolTrace, intent, sourceHint, rowRequest } = input;
   const alternatives = result.alternatives ?? [];
+  const target = sourceHint ?? result.requestedFileName;
+  const lead = rowRequest
+    ? `I understood that you want ${rowRequestLabel(rowRequest)} from "${target}", ` +
+      'but I found multiple matching sources. Which one should I use?'
+    : `I found multiple workspace sources matching "${result.requestedFileName}". ` +
+      'Please pick one.';
+
   const sections: AgentResponseSection[] = [
-    {
-      title: 'What I need',
-      kind: 'text',
-      content:
-        `I found multiple workspace sources matching "${result.requestedFileName}". ` +
-        'Please pick one.',
-    },
+    { title: 'What I need', kind: 'text', content: lead },
   ];
   if (alternatives.length > 0) {
     sections.push({
@@ -149,8 +205,7 @@ function buildNeedsClarification(
     intent,
     resultType: 'source_content',
     summary: 'Multiple sources match your request.',
-    answer:
-      `I need a single file. Choose one of: ${alternatives.join(', ') || 'workspace sources'}.`,
+    answer: lead,
     sections,
     sourceRefs: [],
     warnings: result.warnings,
@@ -166,8 +221,25 @@ function buildNoMatches(
   input: FormatSourceContentResultInput,
   sourceHint: string | undefined,
 ): WorkspaceAgentResponse {
-  const { result, toolTrace, intent } = input;
+  const { result, toolTrace, intent, rowRequest } = input;
   const requested = result.requestedFileName;
+
+  // If the tool resolved a file but the row was out of range, surface the
+  // tool's helpful summary verbatim (it already includes the valid range).
+  if (result.resolvedFileName && rowRequest) {
+    return buildResponse({
+      status: 'needs_clarification',
+      intent,
+      resultType: 'source_content',
+      summary: 'Requested row is out of range.',
+      answer: result.summary,
+      sections: [{ title: 'What I need', kind: 'text', content: result.summary }],
+      sourceRefs: [],
+      warnings: result.warnings,
+      nextActions: [],
+      toolTrace,
+    });
+  }
 
   const friendlyMessage = sourceHint
     ? `I understood that you want details about "${sourceHint}", but I couldn't ` +
