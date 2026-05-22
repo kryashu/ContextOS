@@ -15,6 +15,7 @@ import { runTableQuery } from './tools/run-table-query.js';
 import { profileKeys } from './tools/profile-keys.js';
 import { findDuplicateKeys } from './tools/find-duplicate-keys.js';
 import { findDocumentsForKey } from './tools/find-documents-for-key.js';
+import { explainSourceFile } from './tools/explain-source-file.js';
 
 export function registerAllTools(): void {
   toolRegistry.register(checkAnalysisState);
@@ -32,4 +33,5 @@ export function registerAllTools(): void {
   toolRegistry.register(profileKeys);
   toolRegistry.register(findDuplicateKeys);
   toolRegistry.register(findDocumentsForKey);
+  toolRegistry.register(explainSourceFile);
 }

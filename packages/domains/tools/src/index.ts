@@ -41,6 +41,16 @@ export { runTableQuery } from './tools/run-table-query.js';
 export { profileKeys } from './tools/profile-keys.js';
 export { findDuplicateKeys } from './tools/find-duplicate-keys.js';
 export { findDocumentsForKey } from './tools/find-documents-for-key.js';
+export { explainSourceFile } from './tools/explain-source-file.js';
+
+// ── Fuzzy source resolver ──────────────────────────────────────────
+export { resolveWorkspaceSourceFile, levenshtein } from './resolve-workspace-source.js';
+export type {
+  ResolveResult,
+  ResolveStatus,
+  ResolveMatchMethod,
+  ResolveInput,
+} from './resolve-workspace-source.js';
 
 // ── Register all tools on import ────────────────────────────────────
 import { registerAllTools } from './register-all.js';

@@ -89,13 +89,14 @@ describe('ToolRegistry', () => {
     cleanup();
   });
 
-  it('lists all 15 expected tools', () => {
+  it('lists all 16 expected tools', () => {
     const tools = toolRegistry.listTools();
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(16);
     const ids = tools.map((t) => t.id).sort();
     expect(ids).toEqual([
       'askWorkspaceQuestion',
       'checkAnalysisState',
+      'explainSourceFile',
       'findDocumentsForKey',
       'findDuplicateKeys',
       'generateMarkdownReport',
