@@ -308,6 +308,14 @@ const HINT_PREAMBLE_PATTERNS: RegExp[] = [
   /^\s*details?\s+(?:about|on|of|for)\s+/i,
   /^\s*content\s+(?:in|of|from)\s+/i,
   /^\s*inside\s+(?:the\s+)?/i,
+  // Row-content style preambles (VS018.3.1) — strip leading row/header/sample
+  // language so the remainder reads as the source noun phrase.
+  /^\s*(?:the\s+)?contents?\s+of\s+(?:the\s+)?/i,
+  /^\s*(?:the\s+)?(?:first|last|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+row\s+of\s+(?:the\s+)?/i,
+  /^\s*(?:the\s+)?row\s*#?\s*\d+\s+of\s+(?:the\s+)?/i,
+  /^\s*(?:the\s+)?headers?\s+of\s+(?:the\s+)?/i,
+  /^\s*(?:the\s+)?column\s+names?\s+of\s+(?:the\s+)?/i,
+  /^\s*(?:a\s+)?(?:sample|few|some)\s+rows?\s+(?:of|from)\s+(?:the\s+)?/i,
 ];
 
 const HINT_TRAILING_WORDS = new Set([

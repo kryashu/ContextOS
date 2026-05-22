@@ -18,6 +18,19 @@ function generateCommandId(): string {
   return `cmd_${Date.now()}_${commandCounter}`;
 }
 
+// ── Refinement helpers ──────────────────────────────────────────────
+
+/**
+ * Words/phrases signalling the user wants to inspect the contents of a
+ * specific source rather than search the workspace. When combined with a
+ * filename or sourceHint they upgrade `document_lookup` / `workspace_overview`
+ * / `unknown` to `source_content_query`. `evidence_lookup` is intentionally
+ * excluded — "show documents related to X" / "find files mentioning X" are
+ * search intents, not content-inspection intents.
+ */
+const CONTENT_TERMS_PATTERN =
+  /\b(rows?|headers?|columns?|contents?|sample|inside|read\s+file)\b/i;
+
 // ── Intent summaries ────────────────────────────────────────────────
 
 const INTENT_SUMMARIES: Record<string, string> = {
@@ -38,19 +51,42 @@ const INTENT_SUMMARIES: Record<string, string> = {
 export function createWorkspaceCommandPlan(command: string): WorkspaceCommandPlan {
   const route = routeCommand(command);
 
-  // Pre-extract file name & source hint so refinement can use them.
+  // Pre-extract file name, source hint & row request so refinement can use them.
   const fileName = extractFileName(command);
   const sourceHint = extractSourceHint(command);
+  const rowRequest = extractRowRequest(command);
 
   // ── Intent refinement ────────────────────────────────────────────
-  // A concrete file reference always wins over keyword-based routing —
-  // "Summarize release_notes_ABC-123.pdf" should explain the PDF, not run
-  // report generation. A free-form source hint is weaker: it only upgrades
-  // when the router could not classify the command on its own.
+  // 1. A concrete file reference always wins over keyword-based routing —
+  //    "Summarize release_notes_ABC-123.pdf" should explain the PDF, not run
+  //    report generation.
+  // 2. Commands asking for table/source contents (row / headers / columns /
+  //    contents / sample / inside / read file) should explain the source
+  //    even when the keyword router classified them as document_lookup or
+  //    workspace_overview. `evidence_lookup` is NEVER upgraded so commands
+  //    like "Show documents related to ABC-123" stay where they belong.
+  // 3. A free-form source hint alone only upgrades from `unknown`.
   let intent: CommandIntent = route.intent;
   let confidence = route.confidence;
   let routeStatus = route.status;
+
+  const UPGRADEABLE_FOR_CONTENT = new Set<CommandIntent>([
+    'document_lookup', 'workspace_overview', 'unknown',
+  ]);
+  const hasContentTerms =
+    rowRequest !== undefined || CONTENT_TERMS_PATTERN.test(command);
+  const hasSourceRef = fileName !== undefined || sourceHint !== undefined;
+
   if (fileName !== undefined && intent !== 'source_content_query') {
+    intent = 'source_content_query';
+    confidence = 'high';
+    routeStatus = 'executable';
+  } else if (
+    hasContentTerms &&
+    hasSourceRef &&
+    UPGRADEABLE_FOR_CONTENT.has(intent) &&
+    intent !== 'source_content_query'
+  ) {
     intent = 'source_content_query';
     confidence = 'high';
     routeStatus = 'executable';
@@ -63,6 +99,7 @@ export function createWorkspaceCommandPlan(command: string): WorkspaceCommandPla
   const extracted = buildExtracted(command, intent);
   if (fileName) extracted.fileName = fileName;
   if (sourceHint) extracted.sourceHint = sourceHint;
+  if (rowRequest) extracted.rowRequest = rowRequest;
 
   const warnings = buildWarnings(command, { ...route, intent, confidence });
   const summary = INTENT_SUMMARIES[intent] ?? 'Unknown command.';
