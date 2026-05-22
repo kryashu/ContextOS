@@ -1,7 +1,7 @@
 import type { Source } from '@contextos/types';
 import { getModelForTask, TaskType } from '@contextos/ai';
 import { z } from 'zod';
-import { ValidationEngine, createPatternValidator, createEnumValidator, calculateConfidence, LRUCache, OptimizedPatternMatcher } from '@contextos/validation';
+import { calculateConfidence, LRUCache, OptimizedPatternMatcher } from './internal-utils.js';
 
 /**
  * Classification result schema
@@ -403,7 +403,7 @@ export class SourceClassifier {
   /**
    * Check for code indicators
    */
-  private hasCodeIndicators(fileName: string, content: string, fileType: string): boolean {
+  private hasCodeIndicators(_fileName: string, content: string, fileType: string): boolean {
     const codeExtensions = new Set(['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'go', 'rb', 'php', 'html', 'css', 'scss']);
     const codeKeywords = ['function', 'class', 'import', 'export', 'const', 'let', 'var', 'def', 'public', 'private'];
     return codeExtensions.has(fileType) || codeKeywords.some(kw => content.includes(kw));
