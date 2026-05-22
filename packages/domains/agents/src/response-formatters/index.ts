@@ -13,3 +13,8 @@ export { formatErrorResult } from './format-error-result.js';
 export type { FormatErrorInput } from './format-error-result.js';
 export { formatSourceRelationshipResult } from './format-source-relationship-result.js';
 export type { FormatSourceRelationshipResultInput } from './format-source-relationship-result.js';
+export { formatSourceContentResult } from './format-source-content-result.js';
+export type {
+  FormatSourceContentResultInput,
+  ExplainSourceFileToolResult,
+} from './format-source-content-result.js';

@@ -15,6 +15,7 @@ export type WorkspaceAgentResultType =
   | 'table_query'
   | 'key_intelligence'
   | 'document_lookup'
+  | 'source_content'
   | 'report'
   | 'clarification'
   | 'unknown';

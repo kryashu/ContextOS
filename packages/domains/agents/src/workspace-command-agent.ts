@@ -20,6 +20,8 @@ import {
   formatClarificationResult,
   formatErrorResult,
   formatSourceRelationshipResult,
+  formatSourceContentResult,
+  type ExplainSourceFileToolResult,
 } from './response-formatters/index.js';
 
 const MAX_COMMAND_LENGTH = 500;
@@ -35,6 +37,7 @@ const SPECIALIZED_INTENTS: ReadonlySet<CommandIntent> = new Set<CommandIntent>([
   'document_lookup',
   'evidence_lookup',
   'source_relationship_lookup',
+  'source_content_query',
 ]);
 
 const ANALYST_GOAL_INTENTS: ReadonlySet<CommandIntent> = new Set<CommandIntent>([
@@ -123,6 +126,8 @@ export class WorkspaceCommandAgent {
           return await this.runDocumentLookup(workspaceId, plan, trace);
         case 'source_relationship_lookup':
           return await this.runSourceRelationships(workspaceId, plan, trace);
+        case 'source_content_query':
+          return await this.runSourceContentQuery(workspaceId, plan, trace);
         case 'workspace_overview':
         case 'next_actions':
         case 'report_generation':
@@ -267,6 +272,50 @@ export class WorkspaceCommandAgent {
       workspaceId,
       command: plan.originalCommand,
       result,
+      toolTrace: trace.snapshot(),
+    });
+  }
+
+  private async runSourceContentQuery(
+    workspaceId: string,
+    plan: WorkspaceCommandPlan,
+    trace: TraceCollector,
+  ): Promise<WorkspaceAgentResponse> {
+    const fileName = plan.extracted.fileName;
+    const sourceHint = plan.extracted.sourceHint;
+
+    if (!fileName && !sourceHint) {
+      trace.skip(
+        'explainSourceFile',
+        'no file name or source hint was extracted from the command',
+      );
+      return formatClarificationResult({
+        plan,
+        toolTrace: trace.snapshot(),
+        reason:
+          'Please specify which file or document you would like explained ' +
+          '(e.g. release_notes_ABC-123.pdf).',
+      });
+    }
+
+    const result = await trace.time<ExplainSourceFileToolResult>(
+      'explainSourceFile',
+      (r) =>
+        `status=${r.status}, resolved=${r.resolvedFileName ?? '-'}, snippets=${r.snippets.length}`,
+      () =>
+        this.registry.executeTool('explainSourceFile', {
+          workspaceId,
+          fileName,
+          sourceHint,
+        }) as Promise<ExplainSourceFileToolResult>,
+    );
+
+    return formatSourceContentResult({
+      workspaceId,
+      command: plan.originalCommand,
+      intent: plan.intent,
+      result,
+      sourceHint,
       toolTrace: trace.snapshot(),
     });
   }

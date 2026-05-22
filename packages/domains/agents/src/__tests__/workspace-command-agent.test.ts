@@ -281,3 +281,96 @@ describe('WorkspaceCommandAgent — hallucination safeguards', () => {
     expect(hasSourceRefs || hasDownloads || hasSuccessfulTrace).toBe(true);
   });
 });
+
+// ── source_content_query routing ──────────────────────────────────
+
+describe('WorkspaceCommandAgent — source_content_query', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const successToolResult = {
+    status: 'success' as const,
+    requestedFileName: 'irrelevant_hr_policy.txt',
+    resolvedFileName: 'irrelevant_hr_policy.txt',
+    summary: 'HR policy file (3 paragraphs).',
+    snippets: [
+      {
+        text: 'HR vacation policy.',
+        sourceRef: { fileName: 'irrelevant_hr_policy.txt' },
+      },
+    ],
+    warnings: [],
+  };
+
+  it('routes source_content_query → explainSourceFile (not analyst)', async () => {
+    const { registry, calls } = fakeRegistry({
+      explainSourceFile: () => successToolResult,
+    });
+    const analyst = fakeAnalyst();
+    const agent = new WorkspaceCommandAgent(registry, analyst);
+
+    const res = await agent.run({
+      workspaceId: 'ws_1',
+      command: 'Explain the content in irrelevant_hr_policy.txt',
+    });
+
+    expect(calls.map((c) => c.id)).toContain('explainSourceFile');
+    expect(analyst.run).not.toHaveBeenCalled();
+    expect(res.intent).toBe('source_content_query');
+    expect(res.status).toBe('success');
+    expect(res.sourceRefs.length).toBeGreaterThan(0);
+  });
+
+  it('passes sourceHint through to explainSourceFile when no filename is given', async () => {
+    const { registry, calls } = fakeRegistry({
+      explainSourceFile: (input) => {
+        const i = input as { sourceHint?: string };
+        expect(i.sourceHint).toBe('deployment checklist');
+        return {
+          ...successToolResult,
+          requestedFileName: '<hint:deployment checklist>',
+          resolvedFileName: 'deployment_checklist_APP-404.docx',
+          snippets: [
+            {
+              text: 'Deployment checklist for APP-404.',
+              sourceRef: { fileName: 'deployment_checklist_APP-404.docx' },
+            },
+          ],
+        };
+      },
+    });
+    const agent = new WorkspaceCommandAgent(registry, fakeAnalyst());
+
+    const res = await agent.run({
+      workspaceId: 'ws_1',
+      command: 'Give me deployment checklist details',
+    });
+
+    expect(res.intent).toBe('source_content_query');
+    expect(calls.map((c) => c.id)).toContain('explainSourceFile');
+  });
+
+  it('tool no_matches → friendly clarification mentioning the sourceHint', async () => {
+    const { registry } = fakeRegistry({
+      explainSourceFile: () => ({
+        status: 'no_matches' as const,
+        requestedFileName: '<hint:quantum reactor manual>',
+        summary: 'No matching source.',
+        snippets: [],
+        warnings: [],
+        alternatives: [],
+      }),
+    });
+    const agent = new WorkspaceCommandAgent(registry, fakeAnalyst());
+
+    const res = await agent.run({
+      workspaceId: 'ws_1',
+      command: 'Give me quantum reactor manual',
+    });
+
+    expect(res.intent).toBe('source_content_query');
+    expect(res.status).toBe('needs_clarification');
+    expect(res.answer).toMatch(/quantum reactor manual/);
+    expect(res.answer).not.toMatch(/unknown intent|could not determine workflow/i);
+  });
+});
+
