@@ -14,15 +14,63 @@ interface Props {
   onNextAction?: (action: AgentNextAction) => void;
 }
 
-const STATUS_STYLES: Record<WorkspaceAgentResponse['status'], { bg: string; fg: string; label: string }> = {
-  success: { bg: 'var(--color-success-bg, #e6f4ea)', fg: 'var(--color-success, #1e7e34)', label: 'Success' },
-  needs_clarification: { bg: 'var(--color-warning-bg, #fff4e5)', fg: 'var(--color-warning, #b15c00)', label: 'Needs clarification' },
-  no_matches: { bg: 'var(--color-muted-bg, #f0f0f0)', fg: 'var(--color-muted, #555)', label: 'No matches' },
-  error: { bg: 'var(--color-error-bg, #fdeded)', fg: 'var(--color-error, #b3261e)', label: 'Error' },
+const STATUS_STYLES: Record<
+  WorkspaceAgentResponse['status'],
+  { bg: string; fg: string; border: string; label: string }
+> = {
+  success: {
+    bg: 'rgba(34, 197, 94, 0.12)',
+    border: 'rgba(34, 197, 94, 0.45)',
+    fg: 'var(--color-fg)',
+    label: 'Success',
+  },
+  needs_clarification: {
+    bg: 'rgba(245, 158, 11, 0.12)',
+    border: 'rgba(245, 158, 11, 0.45)',
+    fg: 'var(--color-fg)',
+    label: 'Needs clarification',
+  },
+  no_matches: {
+    bg: 'rgba(148, 163, 184, 0.18)',
+    border: 'rgba(148, 163, 184, 0.45)',
+    fg: 'var(--color-fg)',
+    label: 'No matches',
+  },
+  error: {
+    bg: 'rgba(239, 68, 68, 0.12)',
+    border: 'rgba(239, 68, 68, 0.45)',
+    fg: 'var(--color-fg)',
+    label: 'Error',
+  },
 };
+
+function dedupeStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items) {
+    const key = item.trim();
+    if (key.length === 0 || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+function collectAllWarnings(response: WorkspaceAgentResponse): string[] {
+  const fromTop = response.warnings ?? [];
+  const fromSections: string[] = [];
+  for (const section of response.sections) {
+    if (section.kind === 'warning') {
+      const messages = (section.content as { messages?: string[] }).messages;
+      if (Array.isArray(messages)) fromSections.push(...messages);
+    }
+  }
+  return dedupeStrings([...fromTop, ...fromSections]);
+}
 
 export default function WorkspaceAgentResponseDisplay({ response, onNextAction }: Props) {
   const status = STATUS_STYLES[response.status];
+  const warnings = collectAllWarnings(response);
 
   return (
     <section style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -31,6 +79,7 @@ export default function WorkspaceAgentResponseDisplay({ response, onNextAction }
           style={{
             backgroundColor: status.bg,
             color: status.fg,
+            border: `1px solid ${status.border}`,
             padding: '2px 10px',
             borderRadius: 12,
             fontSize: 12,
@@ -55,9 +104,7 @@ export default function WorkspaceAgentResponseDisplay({ response, onNextAction }
         <SectionRenderer key={idx} section={section} />
       ))}
 
-      {response.warnings && response.warnings.length > 0 && (
-        <WarningsBlock warnings={response.warnings} />
-      )}
+      {warnings.length > 0 && <WarningsBlock warnings={warnings} />}
 
       {response.sourceRefs.length > 0 && <SourceRefsBlock refs={response.sourceRefs} />}
 
@@ -85,7 +132,9 @@ function SectionRenderer({ section }: { section: AgentResponseSection }) {
     case 'evidence':
       return <EvidenceSection content={section.content as { entries: Array<{ fileName: string; snippet: string; sourceRange?: string }> }} />;
     case 'warning':
-      return <WarningsBlock warnings={(section.content as { messages: string[] }).messages} />;
+      // Warnings are rendered once at the top level (deduped). Skip the
+      // per-section render to avoid showing "Warnings:" twice.
+      return null;
     case 'downloads':
       return null; // handled at top level
     default:
@@ -208,19 +257,24 @@ function EvidenceSection({
 }
 
 function WarningsBlock({ warnings }: { warnings: string[] }) {
+  const unique = dedupeStrings(warnings);
+  if (unique.length === 0) return null;
   return (
     <div
       style={{
         padding: 8,
-        border: '1px solid var(--color-warning, #b15c00)',
+        border: '1px solid rgba(245, 158, 11, 0.45)',
         borderRadius: 6,
-        backgroundColor: 'var(--color-warning-bg, #fff4e5)',
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+        color: 'var(--color-fg)',
         fontSize: 12,
       }}
+      role="alert"
+      aria-label="Warnings"
     >
       <strong>Warnings:</strong>
       <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-        {warnings.map((w, i) => (
+        {unique.map((w, i) => (
           <li key={i}>{w}</li>
         ))}
       </ul>
