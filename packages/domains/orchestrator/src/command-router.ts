@@ -79,6 +79,22 @@ const INTENT_PATTERNS: IntentPattern[] = [
     requiredCapabilities: [],
   },
   {
+    intent: 'source_content_query',
+    status: 'executable',
+    confidence: 'high',
+    keywords: [
+      'explain the content', 'explain this document', 'explain this file',
+      'explain file', 'explain document', 'what is inside', 'what\u2019s inside',
+      'read the file', 'summarize file', 'summarize document', 'content in',
+      'content of', 'contents of', 'show contents', 'inside the file',
+      'first row', 'last row', 'show row', 'read row', 'row ',
+      'headers', 'column names', 'show columns',
+      'sample rows', 'few rows', 'some rows',
+      '.pdf', '.docx', '.xlsx', '.csv', '.txt', '.md', '.json', '.yaml', '.yml',
+    ],
+    requiredCapabilities: [],
+  },
+  {
     intent: 'document_lookup',
     status: 'executable',
     confidence: 'medium',

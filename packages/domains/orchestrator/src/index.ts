@@ -8,8 +8,8 @@ export type {
   AggregationOperation,
   CommandAggregation,
   ExtractedCommandData,
-  WorkspaceCommandPlan,
-} from './types.js';
+  WorkspaceCommandPlan,  RowRequest,
+  RowRequestType,} from './types.js';
 
 // ── Router ──────────────────────────────────────────────────────────
 export { routeCommand } from './command-router.js';
@@ -24,6 +24,9 @@ export {
   extractFilterExpressions,
   detectAggregationOperation,
   extractKeyType,
+  extractFileName,
+  extractSourceHint,
+  extractRowRequest,
 } from './command-parser.js';
 
 // ── Plan builder ────────────────────────────────────────────────────

@@ -6,6 +6,8 @@ import {
   extractAggregateFields,
   detectAggregationOperation,
   extractFilterExpressions,
+  extractFileName,
+  extractSourceHint,
 } from '../command-parser.js';
 
 describe('normalizeDateToIsoLikeString', () => {
@@ -123,3 +125,65 @@ describe('extractFilterExpressions', () => {
     expect(filters[0]).toEqual({ field: 'value', operator: 'greater_than', value: '100' });
   });
 });
+
+describe('extractFileName', () => {
+  it('extracts a .txt file with underscores', () => {
+    expect(extractFileName('Explain the content in irrelevant_hr_policy.txt'))
+      .toBe('irrelevant_hr_policy.txt');
+  });
+
+  it('extracts a .pdf file with hyphens and uppercase ids', () => {
+    expect(extractFileName('Explain release_notes_ABC-123.pdf'))
+      .toBe('release_notes_ABC-123.pdf');
+  });
+
+  it('preserves a typo in the requested filename (resolution is separate)', () => {
+    expect(extractFileName('Explain irrelevan_hr_policy.txt'))
+      .toBe('irrelevan_hr_policy.txt');
+  });
+
+  it('extracts an .xlsx file', () => {
+    expect(extractFileName('Tell me about license_tracker.xlsx'))
+      .toBe('license_tracker.xlsx');
+  });
+
+  it('returns undefined when no supported extension is present', () => {
+    expect(extractFileName('show me the overview')).toBeUndefined();
+  });
+
+  it('does not pick a fragment with an unsupported extension', () => {
+    expect(extractFileName('open file.exe please')).toBeUndefined();
+  });
+});
+
+describe('extractSourceHint', () => {
+  it('strips "give me X details" preamble + filler', () => {
+    expect(extractSourceHint('Give me deployment checklist details'))
+      .toBe('deployment checklist');
+  });
+
+  it('strips "explain" preamble', () => {
+    expect(extractSourceHint('Explain HR policy')).toBe('HR policy');
+  });
+
+  it('strips "tell me about" preamble', () => {
+    expect(extractSourceHint('Tell me about release notes')).toBe('release notes');
+  });
+
+  it('strips "summarize" preamble', () => {
+    expect(extractSourceHint('Summarize approval letter')).toBe('approval letter');
+  });
+
+  it('returns undefined for stopword-only phrases like "this workspace"', () => {
+    expect(extractSourceHint('Tell me about this workspace')).toBeUndefined();
+  });
+
+  it('returns undefined for unrelated table queries', () => {
+    expect(extractSourceHint('Calculate total units sold')).toBeUndefined();
+  });
+
+  it('returns undefined when a concrete filename is present (file path wins)', () => {
+    expect(extractSourceHint('Explain release_notes_ABC-123.pdf')).toBeUndefined();
+  });
+});
+

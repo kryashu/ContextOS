@@ -65,4 +65,16 @@ describe('routeCommand', () => {
     expect(r.intent).toBe('evidence_lookup');
     expect(r.status).toBe('executable');
   });
+
+  it('routes source_content_query when file extension present', () => {
+    const r = routeCommand('Explain the content in irrelevant_hr_policy.txt');
+    expect(r.intent).toBe('source_content_query');
+    expect(r.status).toBe('executable');
+    expect(r.confidence).toBe('high');
+  });
+
+  it('does not route generic "show related documents" to source_content_query', () => {
+    const r = routeCommand('show related documents');
+    expect(r.intent).not.toBe('source_content_query');
+  });
 });

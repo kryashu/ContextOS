@@ -1,4 +1,4 @@
-import type { WorkspaceCommandPlan, ExtractedCommandData } from './types.js';
+import type { WorkspaceCommandPlan, ExtractedCommandData, CommandIntent } from './types.js';
 import { routeCommand } from './command-router.js';
 import {
   extractDates,
@@ -6,6 +6,9 @@ import {
   extractAggregateFields,
   extractFilterExpressions,
   extractKeyType,
+  extractFileName,
+  extractSourceHint,
+  extractRowRequest,
 } from './command-parser.js';
 
 let commandCounter = 0;
@@ -26,6 +29,7 @@ const INTENT_SUMMARIES: Record<string, string> = {
   evidence_lookup: 'Find evidence or references for the query.',
   table_aggregate_query: 'Run a table aggregation query.',
   duplicate_key_query: 'Detect duplicate keys across data sources.',
+  source_content_query: 'Explain the contents of a specific source file.',
   unknown: 'Could not determine what to do.',
 };
 
@@ -34,15 +38,40 @@ const INTENT_SUMMARIES: Record<string, string> = {
 export function createWorkspaceCommandPlan(command: string): WorkspaceCommandPlan {
   const route = routeCommand(command);
 
-  const extracted = buildExtracted(command, route.intent);
-  const warnings = buildWarnings(command, route);
-  const summary = INTENT_SUMMARIES[route.intent] ?? 'Unknown command.';
+  // Pre-extract file name & source hint so refinement can use them.
+  const fileName = extractFileName(command);
+  const sourceHint = extractSourceHint(command);
+
+  // ── Intent refinement ────────────────────────────────────────────
+  // A concrete file reference always wins over keyword-based routing —
+  // "Summarize release_notes_ABC-123.pdf" should explain the PDF, not run
+  // report generation. A free-form source hint is weaker: it only upgrades
+  // when the router could not classify the command on its own.
+  let intent: CommandIntent = route.intent;
+  let confidence = route.confidence;
+  let routeStatus = route.status;
+  if (fileName !== undefined && intent !== 'source_content_query') {
+    intent = 'source_content_query';
+    confidence = 'high';
+    routeStatus = 'executable';
+  } else if (sourceHint !== undefined && intent === 'unknown') {
+    intent = 'source_content_query';
+    confidence = 'high';
+    routeStatus = 'executable';
+  }
+
+  const extracted = buildExtracted(command, intent);
+  if (fileName) extracted.fileName = fileName;
+  if (sourceHint) extracted.sourceHint = sourceHint;
+
+  const warnings = buildWarnings(command, { ...route, intent, confidence });
+  const summary = INTENT_SUMMARIES[intent] ?? 'Unknown command.';
 
   // Guard: document_lookup/evidence_lookup without a key value → needs_clarification
-  let status = route.status;
+  let status = routeStatus;
   let nextStep = route.nextStep;
   if (
-    (route.intent === 'document_lookup' || route.intent === 'evidence_lookup') &&
+    (intent === 'document_lookup' || intent === 'evidence_lookup') &&
     status === 'executable' &&
     !extracted.keyValue &&
     (!extracted.keyValues || extracted.keyValues.length === 0)
@@ -51,12 +80,23 @@ export function createWorkspaceCommandPlan(command: string): WorkspaceCommandPla
     nextStep = 'Please specify which key or identifier to search for (e.g. product ABC-123, license LIC-2025-88).';
   }
 
+  // Guard: source_content_query without any file hint → needs_clarification
+  if (
+    intent === 'source_content_query' &&
+    status === 'executable' &&
+    !extracted.fileName &&
+    !extracted.sourceHint
+  ) {
+    status = 'needs_clarification';
+    nextStep = 'Please specify which file or document you would like explained (e.g. release_notes_ABC-123.pdf).';
+  }
+
   return {
     commandId: generateCommandId(),
     originalCommand: command,
-    intent: route.intent,
+    intent,
     status,
-    confidence: route.confidence,
+    confidence,
     summary,
     extracted,
     requiredCapabilities: route.requiredCapabilities,

@@ -1,4 +1,9 @@
-import type { CommandFilter, CommandAggregation, AggregationOperation } from './types.js';
+import type {
+  CommandFilter,
+  CommandAggregation,
+  AggregationOperation,
+  RowRequest,
+} from './types.js';
 
 // ── Date normalization ──────────────────────────────────────────────
 
@@ -276,4 +281,163 @@ export function extractFilterExpressions(command: string): CommandFilter[] {
   }
 
   return filters;
+}
+
+// ── File name extraction ────────────────────────────────────────────
+
+const FILE_NAME_PATTERN =
+  /(\w[\w.-]*\.(?:pdf|docx|xlsx|csv|txt|md|json|yaml|yml))\b/i;
+
+/**
+ * Extract a filename (with supported extension) from a free-form command.
+ * Returns the original-case filename or undefined.
+ */
+export function extractFileName(command: string): string | undefined {
+  const match = FILE_NAME_PATTERN.exec(command);
+  return match ? match[1] : undefined;
+}
+
+// ── Source hint extraction ──────────────────────────────────────────
+
+const HINT_PREAMBLE_PATTERNS: RegExp[] = [
+  /^\s*(?:please\s+)?(?:can\s+you\s+)?(?:could\s+you\s+)?/i,
+  /^\s*(?:explain(?:\s+the)?|summari[sz]e|describe|read)\s+(?:this\s+|the\s+|me\s+)?(?:document|file|source|content)?[:\s-]*/i,
+  /^\s*tell\s+me\s+(?:more\s+)?about\s+(?:the\s+)?/i,
+  /^\s*(?:give|show)\s+me\s+(?:the\s+|some\s+)?/i,
+  /^\s*what\s+(?:is|are|do(?:es)?)\s+(?:in|inside|the\s+content\s+of)?\s*/i,
+  /^\s*details?\s+(?:about|on|of|for)\s+/i,
+  /^\s*content\s+(?:in|of|from)\s+/i,
+  /^\s*inside\s+(?:the\s+)?/i,
+];
+
+const HINT_TRAILING_WORDS = new Set([
+  'details', 'detail', 'file', 'document', 'doc', 'info', 'information',
+  'content', 'contents', 'data', 'please', 'now', 'today', 'summary',
+]);
+
+const HINT_STOPWORDS = new Set([
+  'workspace', 'this', 'that', 'overview', 'it', 'everything', 'all',
+  'analysis', 'report', 'something', 'anything',
+  // Generic filler often left after stripping preamble in overview commands
+  'a', 'an', 'the', 'of', 'for', 'about', 'on', 'in',
+  'complete', 'full', 'thorough', 'quick', 'brief', 'short',
+  'understanding', 'view', 'picture', 'snapshot',
+]);
+
+/**
+ * Extract a natural-language source hint (a noun phrase identifying a likely
+ * file/document) from a command. Returns undefined when nothing meaningful
+ * remains after stripping preamble + trailing filler.
+ *
+ * Examples:
+ *   "Give me deployment checklist details" -> "deployment checklist"
+ *   "Explain HR policy"                    -> "HR policy"
+ *   "Tell me about release notes"          -> "release notes"
+ *   "Tell me about this workspace"         -> undefined (stopwords only)
+ */
+export function extractSourceHint(command: string): string | undefined {
+  let working = command.trim();
+  if (!working) return undefined;
+
+  // Skip if a concrete filename is present — that path uses extractFileName.
+  if (FILE_NAME_PATTERN.test(working)) return undefined;
+
+  // Strip preamble phrases iteratively (apply each pattern once). Track
+  // whether at least one preamble matched — without a recognisable cue the
+  // remaining text is too ambiguous to treat as a source hint.
+  let preambleMatched = false;
+  for (const pattern of HINT_PREAMBLE_PATTERNS) {
+    const before = working;
+    working = working.replace(pattern, '');
+    if (working !== before && working.trim().length > 0) {
+      preambleMatched = true;
+    }
+  }
+  if (!preambleMatched) return undefined;
+
+  // Cut at clause boundaries (commas, semicolons, "and ...", etc.) — keep
+  // only the leading noun phrase.
+  working = working.split(/[,;]/)[0] ?? working;
+  working = working.replace(/\s+and\s+.*$/i, '');
+
+  // Strip trailing punctuation.
+  working = working.replace(/[.?!]+$/, '').trim();
+
+  if (!working) return undefined;
+
+  // Drop trailing filler words ("details", "file", "document", ...).
+  const tokens = working.split(/\s+/);
+  while (tokens.length > 0) {
+    const last = tokens.at(-1)!.toLowerCase();
+    if (HINT_TRAILING_WORDS.has(last)) {
+      tokens.pop();
+    } else {
+      break;
+    }
+  }
+
+  if (tokens.length === 0) return undefined;
+
+  // Reject if every remaining token is a stopword.
+  const meaningful = tokens.filter((t) => !HINT_STOPWORDS.has(t.toLowerCase()));
+  if (meaningful.length === 0) return undefined;
+
+  const hint = tokens.join(' ').trim();
+  if (hint.length < 2) return undefined;
+
+  return hint;
+}
+
+// ── Row request extraction ──────────────────────────────────────────
+
+const ORDINAL_WORDS: Record<string, number> = {
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5,
+  sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10,
+};
+
+const ROW_NUMBER_PATTERN = /\brow\s*#?\s*(\d{1,4})\b/i;
+const ORDINAL_ROW_PATTERN =
+  /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|1st|2nd|3rd|4th|5th|6th|7th|8th|9th|10th)\s+row\b/i;
+const LAST_ROW_PATTERN = /\blast\s+row\b/i;
+const HEADERS_PATTERN =
+  /\b(headers?|column\s+names?|columns)\b/i;
+const SAMPLE_ROWS_PATTERN = /\b(sample|few|some)\s+rows?\b/i;
+
+/**
+ * Detect whether the command is asking for row-/column-level inspection of
+ * a table-like source. Returns a structured `RowRequest` or undefined.
+ *
+ * Precedence: explicit numeric row > ordinal row > last > headers > sample.
+ * Ordinals 1st-10th (and word forms) map to `{ type: 'number', rowNumber }`,
+ * except `first` which collapses to `{ type: 'first' }` for readability.
+ */
+export function extractRowRequest(command: string): RowRequest | undefined {
+  // Numeric: "row 2", "row #3"
+  const numMatch = ROW_NUMBER_PATTERN.exec(command);
+  if (numMatch) {
+    const n = Number.parseInt(numMatch[1] ?? '', 10);
+    if (Number.isFinite(n) && n > 0) {
+      return n === 1 ? { type: 'first' } : { type: 'number', rowNumber: n };
+    }
+  }
+
+  // Ordinal: "first row", "2nd row", "third row"
+  const ordMatch = ORDINAL_ROW_PATTERN.exec(command);
+  if (ordMatch) {
+    const raw = (ordMatch[1] ?? '').toLowerCase();
+    const wordN = ORDINAL_WORDS[raw];
+    const digitMatch = /^(\d{1,2})/.exec(raw);
+    const digitN = digitMatch ? Number.parseInt(digitMatch[1] ?? '', 10) : undefined;
+    const n = wordN ?? digitN;
+    if (n === 1) return { type: 'first' };
+    if (typeof n === 'number' && n > 0) {
+      return { type: 'number', rowNumber: n };
+    }
+  }
+
+  if (LAST_ROW_PATTERN.test(command)) return { type: 'last' };
+  if (HEADERS_PATTERN.test(command)) return { type: 'headers' };
+  if (SAMPLE_ROWS_PATTERN.test(command)) return { type: 'sample' };
+
+  return undefined;
 }

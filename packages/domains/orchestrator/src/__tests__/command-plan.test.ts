@@ -84,4 +84,42 @@ describe('createWorkspaceCommandPlan', () => {
     expect(plan.extracted.aggregations![2]!.field).toBe('units with retailers');
     expect(plan.extracted.aggregations!.every(a => a.operation === 'sum')).toBe(true);
   });
+
+  describe('source_content_query refinement', () => {
+    it('upgrades unknown command with a filename to source_content_query', () => {
+      const plan = createWorkspaceCommandPlan('Explain the content in irrelevant_hr_policy.txt');
+      expect(plan.intent).toBe('source_content_query');
+      expect(plan.status).toBe('executable');
+      expect(plan.confidence).toBe('high');
+      expect(plan.extracted.fileName).toBe('irrelevant_hr_policy.txt');
+    });
+
+    it('upgrades workspace_overview-keyworded command when a filename is present', () => {
+      const plan = createWorkspaceCommandPlan('Tell me about release_notes_ABC-123.pdf');
+      expect(plan.intent).toBe('source_content_query');
+      expect(plan.extracted.fileName).toBe('release_notes_ABC-123.pdf');
+    });
+
+    it('upgrades to source_content_query when only a sourceHint is present', () => {
+      const plan = createWorkspaceCommandPlan('Give me deployment checklist details');
+      expect(plan.intent).toBe('source_content_query');
+      expect(plan.status).toBe('executable');
+      expect(plan.extracted.sourceHint).toBe('deployment checklist');
+      expect(plan.extracted.fileName).toBeUndefined();
+    });
+
+    it('does NOT upgrade "tell me about this workspace" (stopwords only)', () => {
+      const plan = createWorkspaceCommandPlan('Tell me about this workspace');
+      expect(plan.intent).toBe('workspace_overview');
+    });
+
+    it('source_content_query without fileName or sourceHint → needs_clarification', () => {
+      // direct router hit with no fileName/hint — pre-empted by guard
+      const plan = createWorkspaceCommandPlan('explain the content');
+      // Either we never reach source_content_query OR if we do, must be needs_clarification
+      if (plan.intent === 'source_content_query') {
+        expect(plan.status).toBe('needs_clarification');
+      }
+    });
+  });
 });

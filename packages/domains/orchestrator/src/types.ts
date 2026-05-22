@@ -9,6 +9,7 @@ export type CommandIntent =
   | 'table_aggregate_query'
   | 'duplicate_key_query'
   | 'evidence_lookup'
+  | 'source_content_query'
   | 'unknown';
 
 // ── Execution status ────────────────────────────────────────────────
@@ -47,6 +48,15 @@ export interface CommandAggregation {
   label?: string;
 }
 
+// ── Row request (source content / table inspection) ────────────────
+
+export type RowRequestType = 'first' | 'last' | 'number' | 'headers' | 'sample';
+
+export interface RowRequest {
+  type: RowRequestType;
+  rowNumber?: number;
+}
+
 // ── Extracted command data ──────────────────────────────────────────
 
 export interface ExtractedCommandData {
@@ -58,6 +68,9 @@ export interface ExtractedCommandData {
   fields?: string[];
   filters?: CommandFilter[];
   aggregations?: CommandAggregation[];
+  fileName?: string;
+  sourceHint?: string;
+  rowRequest?: RowRequest;
 }
 
 // ── Command plan ────────────────────────────────────────────────────
