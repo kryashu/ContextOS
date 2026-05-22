@@ -48,3 +48,5 @@ eval-report.json
 # Demo outputs
 demo-workspaces/*/output/
 .slingshot/
+HYBRID_SYSTEM_ANALYSIS.md
+HYBRID_SYSTEM_INTEGRATION_GUIDE.md
