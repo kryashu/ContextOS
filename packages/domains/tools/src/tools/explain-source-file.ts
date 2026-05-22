@@ -9,15 +9,23 @@ import {
 
 // ── I/O schemas ─────────────────────────────────────────────────────
 
+const rowRequestSchema = z.object({
+  type: z.enum(['first', 'last', 'number', 'headers', 'sample']),
+  rowNumber: z.number().int().positive().optional(),
+});
+
 const inputSchema = z
   .object({
     workspaceId: z.string().min(1),
     fileName: z.string().min(1).optional(),
     sourceHint: z.string().min(1).optional(),
+    rowRequest: rowRequestSchema.optional(),
   })
   .refine((v) => Boolean(v.fileName) || Boolean(v.sourceHint), {
     message: 'Either fileName or sourceHint must be provided.',
   });
+
+type RowRequestInput = z.infer<typeof rowRequestSchema>;
 
 interface SourceRef {
   fileName: string;
@@ -32,6 +40,11 @@ interface Snippet {
   sourceRef: SourceRef;
 }
 
+export interface RowFieldValue {
+  field: string;
+  value: string;
+}
+
 interface ExplainSourceFileResult {
   status: 'success' | 'no_matches' | 'needs_clarification' | 'error';
   requestedFileName: string;
@@ -40,6 +53,14 @@ interface ExplainSourceFileResult {
   snippets: Snippet[];
   warnings: string[];
   alternatives?: string[];
+  /** Field/Value pairs when rowRequest is first/last/number on a CSV. */
+  rowContent?: RowFieldValue[];
+  /** Headers list when rowRequest is `headers` on a CSV. */
+  headers?: string[];
+  /** Sample rows (header-aligned) when rowRequest is `sample` on a CSV. */
+  sampleRows?: Array<Record<string, string>>;
+  /** 1-based data-row index of the row returned (when applicable). */
+  dataRow?: number;
 }
 
 const outputSchema = z.custom<ExplainSourceFileResult>();
@@ -173,16 +194,82 @@ function pickSnippets(text: string): string[] {
 
 // ── Table summary (deterministic, no full dump) ─────────────────────
 
-function summarizeCsv(text: string): { headers: string[]; rowCount: number } {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-  if (lines.length === 0) return { headers: [], rowCount: 0 };
-  const headerLine = lines[0] ?? '';
-  const headers = headerLine.split(',').map((h) => h.trim()).slice(0, 20);
-  return { headers, rowCount: Math.max(0, lines.length - 1) };
+// ── CSV parsing (RFC-4180-lite, no external dep) ───────────────────
+
+/**
+ * Parse a CSV text into headers + rows. Handles quoted fields with embedded
+ * commas, CRLF, and the `""` escape for a literal quote inside a quoted
+ * field. Trims leading/trailing whitespace on unquoted values. Skips
+ * fully-empty lines.
+ */
+function parseCsv(text: string): { headers: string[]; rows: string[][] } {
+  const records: string[][] = [];
+  let field = '';
+  let row: string[] = [];
+  let inQuotes = false;
+  let i = 0;
+
+  const pushField = (): void => {
+    row.push(inQuotes ? field : field.trim());
+    field = '';
+  };
+  const pushRow = (): void => {
+    pushField();
+    // Drop pure-empty rows (e.g. trailing newline).
+    if (!(row.length === 1 && row[0] === '')) records.push(row);
+    row = [];
+  };
+
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = false;
+        i++;
+        continue;
+      }
+      field += ch;
+      i++;
+      continue;
+    }
+    if (ch === '"' && field.length === 0) {
+      inQuotes = true;
+      i++;
+      continue;
+    }
+    if (ch === ',') {
+      pushField();
+      i++;
+      continue;
+    }
+    if (ch === '\n') {
+      pushRow();
+      i++;
+      continue;
+    }
+    if (ch === '\r') {
+      // Swallow lone CR or CRLF as a row terminator.
+      pushRow();
+      if (text[i + 1] === '\n') i += 2; else i++;
+      continue;
+    }
+    field += ch;
+    i++;
+  }
+  if (field.length > 0 || row.length > 0) pushRow();
+
+  if (records.length === 0) return { headers: [], rows: [] };
+  const headers = (records[0] ?? []).map((h) => h.trim());
+  const rows = records.slice(1);
+  return { headers, rows };
 }
+
+// ── Table summary (deterministic, no full dump) ─────────────────────
 
 function buildTableResult(
   resolvedFileName: string,
@@ -190,15 +277,62 @@ function buildTableResult(
   context: ToolExecutionContext,
   requestedFileName: string,
   warnings: string[],
+  rowRequest: RowRequestInput | undefined,
 ): ExplainSourceFileResult {
   if (ext === 'csv') {
-    const path = resolve(context.sourcesDir, resolvedFileName);
-    if (!existsSync(path)) {
-      return errorResult(requestedFileName, resolvedFileName,
-        `CSV file not found at ${resolvedFileName}.`, warnings);
-    }
-    const text = readBounded(path);
-    const { headers, rowCount } = summarizeCsv(text);
+    return buildCsvResult(
+      resolvedFileName,
+      context,
+      requestedFileName,
+      warnings,
+      rowRequest,
+    );
+  }
+
+  // .xlsx — deterministic placeholder without external parser. We report
+  // workbook profile presence if available.
+  const baseSummary = `Excel workbook (${resolvedFileName}). Detailed per-sheet ` +
+    `inspection requires the workbook profile tool; this view reports file ` +
+    `presence only.`;
+
+  if (rowRequest) {
+    warnings.push(
+      'I found the workbook, but row-level XLSX reading is not available in this command yet.',
+    );
+  } else {
+    warnings.push('XLSX content is not parsed inline; use getWorkbookProfile for per-sheet details.');
+  }
+
+  return {
+    status: 'success',
+    requestedFileName,
+    resolvedFileName,
+    summary: baseSummary,
+    snippets: [{
+      text: `Excel workbook present in workspace sources: ${resolvedFileName}.`,
+      sourceRef: { fileName: resolvedFileName, sheet: 'workbook' },
+    }],
+    warnings,
+  };
+}
+
+function buildCsvResult(
+  resolvedFileName: string,
+  context: ToolExecutionContext,
+  requestedFileName: string,
+  warnings: string[],
+  rowRequest: RowRequestInput | undefined,
+): ExplainSourceFileResult {
+  const path = resolve(context.sourcesDir, resolvedFileName);
+  if (!existsSync(path)) {
+    return errorResult(requestedFileName, resolvedFileName,
+      `CSV file not found at ${resolvedFileName}.`, warnings);
+  }
+  const text = readBounded(path);
+  const { headers, rows } = parseCsv(text);
+  const rowCount = rows.length;
+
+  if (!rowRequest) {
     const summary =
       `CSV table with ${headers.length} column(s) and ${rowCount} row(s). ` +
       (headers.length > 0 ? `Columns: ${headers.join(', ')}.` : '');
@@ -210,28 +344,143 @@ function buildTableResult(
       requestedFileName,
       resolvedFileName,
       summary,
-      snippets: [{ text: snippetText, sourceRef: { fileName: resolvedFileName, row: 1 } }],
+      snippets: [{ text: snippetText, sourceRef: { fileName: resolvedFileName } }],
       warnings,
     };
   }
 
-  // .xlsx — deterministic placeholder without external parser. We report
-  // workbook profile presence if available.
-  const summary = `Excel workbook (${resolvedFileName}). Detailed per-sheet ` +
-    `inspection requires the workbook profile tool; this view reports file ` +
-    `presence only.`;
-  warnings.push('XLSX content is not parsed inline; use getWorkbookProfile for per-sheet details.');
+  // headers-only
+  if (rowRequest.type === 'headers') {
+    const summary = headers.length > 0
+      ? `${headers.length} column(s) in ${resolvedFileName}: ${headers.join(', ')}.`
+      : `No header row detected in ${resolvedFileName}.`;
+    return {
+      status: 'success',
+      requestedFileName,
+      resolvedFileName,
+      summary,
+      snippets: [{
+        text: headers.length > 0 ? `Columns: ${headers.join(', ')}` : 'No columns detected.',
+        sourceRef: { fileName: resolvedFileName, sourceRange: 'headers' },
+      }],
+      warnings,
+      headers,
+    };
+  }
+
+  // sample
+  if (rowRequest.type === 'sample') {
+    const SAMPLE_LIMIT = 5;
+    const sample = rows.slice(0, SAMPLE_LIMIT);
+    const sampleRows = sample.map((r) => zipRow(headers, r));
+    const summary = sample.length === 0
+      ? `${resolvedFileName} has no data rows to sample.`
+      : `First ${sample.length} of ${rowCount} data row(s) from ${resolvedFileName}.`;
+    const snippets: Snippet[] = sample.map((r, idx) => ({
+      text: formatRowInline(headers, r),
+      sourceRef: {
+        fileName: resolvedFileName,
+        row: idx + 1,
+        sourceRange: `data row ${idx + 1}`,
+      },
+    }));
+    return {
+      status: 'success',
+      requestedFileName,
+      resolvedFileName,
+      summary,
+      snippets,
+      warnings,
+      headers,
+      sampleRows,
+    };
+  }
+
+  // first / last / number
+  let targetIndex: number; // zero-based into `rows`
+  if (rowRequest.type === 'first') targetIndex = 0;
+  else if (rowRequest.type === 'last') targetIndex = rowCount - 1;
+  else targetIndex = (rowRequest.rowNumber ?? 0) - 1;
+
+  if (rowCount === 0) {
+    const message = `I found ${resolvedFileName}, but it has no data rows.`;
+    warnings.push(message);
+    return {
+      status: 'no_matches',
+      requestedFileName,
+      resolvedFileName,
+      summary: message,
+      snippets: [],
+      warnings,
+      headers,
+    };
+  }
+  if (targetIndex < 0 || targetIndex >= rowCount) {
+    const message =
+      `I found ${resolvedFileName}, but it has only ${rowCount} data row(s). ` +
+      `Please choose a row between 1 and ${rowCount}.`;
+    warnings.push(message);
+    return {
+      status: 'no_matches',
+      requestedFileName,
+      resolvedFileName,
+      summary: message,
+      snippets: [],
+      warnings,
+      headers,
+    };
+  }
+
+  const dataRow = targetIndex + 1;
+  const rowValues = rows[targetIndex] ?? [];
+  const rowContent: RowFieldValue[] = headers.length > 0
+    ? headers.map((field, i) => ({ field, value: rowValues[i] ?? '' }))
+    : rowValues.map((value, i) => ({ field: `Column ${i + 1}`, value }));
+
+  const label =
+    rowRequest.type === 'first' ? 'first' :
+    rowRequest.type === 'last' ? 'last' :
+    `#${dataRow}`;
+  const summary =
+    `${label === 'first' || label === 'last' ? label.charAt(0).toUpperCase() + label.slice(1) : 'Row ' + label} ` +
+    `data row of ${resolvedFileName} (data row ${dataRow} of ${rowCount}).`;
+
   return {
     status: 'success',
     requestedFileName,
     resolvedFileName,
     summary,
     snippets: [{
-      text: `Excel workbook present in workspace sources: ${resolvedFileName}.`,
-      sourceRef: { fileName: resolvedFileName, sheet: 'workbook' },
+      text: formatRowInline(headers, rowValues),
+      sourceRef: {
+        fileName: resolvedFileName,
+        row: dataRow,
+        sourceRange: `data row ${dataRow}`,
+      },
     }],
     warnings,
+    headers,
+    rowContent,
+    dataRow,
   };
+}
+
+function zipRow(headers: string[], row: string[]): Record<string, string> {
+  const obj: Record<string, string> = {};
+  const columns = headers.length > 0 ? headers : row.map((_, i) => `Column ${i + 1}`);
+  for (let i = 0; i < columns.length; i++) {
+    obj[columns[i] ?? `Column ${i + 1}`] = row[i] ?? '';
+  }
+  return obj;
+}
+
+function formatRowInline(headers: string[], row: string[]): string {
+  if (headers.length === 0) return row.join(' | ');
+  const parts: string[] = [];
+  for (let i = 0; i < headers.length; i++) {
+    parts.push(`${headers[i]}: ${row[i] ?? ''}`);
+  }
+  return parts.join(' | ');
 }
 
 function errorResult(
@@ -311,7 +560,14 @@ export const explainSourceFile: ContextOSTool<
     }
 
     if (TABLE_EXTENSIONS.has(ext)) {
-      return buildTableResult(resolvedFileName, ext, context, requestedFileName, warnings);
+      return buildTableResult(
+        resolvedFileName,
+        ext,
+        context,
+        requestedFileName,
+        warnings,
+        input.rowRequest,
+      );
     }
 
     const read = readSourceText(resolvedFileName, ext, context);

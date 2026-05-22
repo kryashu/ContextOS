@@ -118,4 +118,87 @@ describe('explainSourceFile', () => {
     expect(res.status).toBe('success');
     expect(res.resolvedFileName).toBe('irrelevant_hr_policy.txt');
   });
+
+  // ── VS018.3.1: row content queries ─────────────────────────────────
+
+  it('returns first row as Field/Value pairs (rowRequest first)', async () => {
+    const res = await explainSourceFile.execute(
+      {
+        workspaceId: 'ws_test',
+        fileName: 'product_contacts.csv',
+        rowRequest: { type: 'first' },
+      },
+      ctx,
+    );
+    expect(res.status).toBe('success');
+    expect(res.dataRow).toBe(1);
+    expect(res.rowContent).toEqual([
+      { field: 'name', value: 'Alice' },
+      { field: 'email', value: 'a@b.com' },
+    ]);
+    expect(res.snippets[0]!.sourceRef.sourceRange).toBe('data row 1');
+    expect(res.snippets[0]!.sourceRef.row).toBe(1);
+  });
+
+  it('returns last row when rowRequest type is last', async () => {
+    const res = await explainSourceFile.execute(
+      {
+        workspaceId: 'ws_test',
+        fileName: 'product_contacts.csv',
+        rowRequest: { type: 'last' },
+      },
+      ctx,
+    );
+    expect(res.status).toBe('success');
+    expect(res.dataRow).toBe(2);
+    expect(res.rowContent).toEqual([
+      { field: 'name', value: 'Bob' },
+      { field: 'email', value: 'b@c.com' },
+    ]);
+  });
+
+  it('returns headers when rowRequest type is headers', async () => {
+    const res = await explainSourceFile.execute(
+      {
+        workspaceId: 'ws_test',
+        fileName: 'product_contacts.csv',
+        rowRequest: { type: 'headers' },
+      },
+      ctx,
+    );
+    expect(res.status).toBe('success');
+    expect(res.headers).toEqual(['name', 'email']);
+  });
+
+  it('returns no_matches with helpful range when row out of bounds', async () => {
+    const res = await explainSourceFile.execute(
+      {
+        workspaceId: 'ws_test',
+        fileName: 'product_contacts.csv',
+        rowRequest: { type: 'number', rowNumber: 99 },
+      },
+      ctx,
+    );
+    expect(res.status).toBe('no_matches');
+    expect(res.summary).toBe(
+      'I found product_contacts.csv, but it has only 2 data row(s). Please choose a row between 1 and 2.',
+    );
+    expect(res.warnings).toContain(
+      'I found product_contacts.csv, but it has only 2 data row(s). Please choose a row between 1 and 2.',
+    );
+  });
+
+  it('resolves by sourceHint "product_contacts" → product_contacts.csv with rowRequest', async () => {
+    const res = await explainSourceFile.execute(
+      {
+        workspaceId: 'ws_test',
+        sourceHint: 'product_contacts',
+        rowRequest: { type: 'first' },
+      },
+      ctx,
+    );
+    expect(res.status).toBe('success');
+    expect(res.resolvedFileName).toBe('product_contacts.csv');
+    expect(res.rowContent?.[0]).toEqual({ field: 'name', value: 'Alice' });
+  });
 });
