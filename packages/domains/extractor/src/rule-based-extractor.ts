@@ -9,9 +9,6 @@
  * - Common entity naming conventions
  */
 
-import type { Entity, Relationship, SourceReference } from '@contextos/types';
-import { calculateConfidence } from '@contextos/validation';
-
 export interface RuleBasedExtractionResult {
   entities: Array<{
     type: string;

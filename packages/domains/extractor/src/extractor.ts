@@ -82,9 +82,13 @@ export class EntityExtractor {
 
       // If rule-based extraction has good coverage, use it
       if (ruleResult && ruleResult.coverage >= 0.7) {
-        const entities = this.convertToEntities(ruleResult.entities, source, workspaceId);
+        const entities = this.convertToEntities(
+          ruleResult.entities as EntityExtraction[],
+          source,
+          workspaceId,
+        );
         const relationships = this.convertToRelationships(
-          ruleResult.relationships,
+          ruleResult.relationships as RelationshipExtraction[],
           entities,
           source,
           workspaceId
@@ -103,9 +107,13 @@ export class EntityExtractor {
       if (ruleResult && ruleResult.coverage >= 0.4) {
         console.log(`[Extractor] Using hybrid approach for ${source.fileName} (rule coverage: ${ruleResult.coverage})`);
         
-        const ruleEntities = this.convertToEntities(ruleResult.entities, source, workspaceId);
+        const ruleEntities = this.convertToEntities(
+          ruleResult.entities as EntityExtraction[],
+          source,
+          workspaceId,
+        );
         const ruleRelationships = this.convertToRelationships(
-          ruleResult.relationships,
+          ruleResult.relationships as RelationshipExtraction[],
           ruleEntities,
           source,
           workspaceId
