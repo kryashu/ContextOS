@@ -1,6 +1,7 @@
 import type { Source, Entity, Relationship, SourceReference } from '@contextos/types';
 import { getModelForTask, TaskType } from '@contextos/ai';
 import { z } from 'zod';
+import { RuleBasedExtractor } from './rule-based-extractor.js';
 
 /**
  * Extraction schemas for structured LLM output
@@ -59,17 +60,83 @@ type ExtractionResult = z.infer<typeof ExtractionResultSchema>;
  * EntityExtractor uses LLM to extract entities and relationships from sources
  */
 export class EntityExtractor {
+  private ruleBasedExtractor = new RuleBasedExtractor();
+
   /**
    * Extract entities and relationships from a source
+   * Uses rule-based extraction first, falls back to LLM for complex cases
    */
   async extract(source: Source, workspaceId: string): Promise<{
     entities: Entity[];
     relationships: Relationship[];
+    method: 'rule-based' | 'llm-assisted' | 'hybrid';
+    confidence: number;
   }> {
     try {
+      // Try rule-based extraction first
+      const ruleResult = this.ruleBasedExtractor.extract(
+        source.rawContent,
+        source.fileType,
+        source.fileName
+      );
+
+      // If rule-based extraction has good coverage, use it
+      if (ruleResult && ruleResult.coverage >= 0.7) {
+        const entities = this.convertToEntities(ruleResult.entities, source, workspaceId);
+        const relationships = this.convertToRelationships(
+          ruleResult.relationships,
+          entities,
+          source,
+          workspaceId
+        );
+
+        console.log(`[Extractor] Rule-based extraction successful for ${source.fileName} (coverage: ${ruleResult.coverage})`);
+        return { 
+          entities, 
+          relationships,
+          method: 'rule-based',
+          confidence: ruleResult.coverage,
+        };
+      }
+
+      // If rule-based extraction has partial coverage, use hybrid approach
+      if (ruleResult && ruleResult.coverage >= 0.4) {
+        console.log(`[Extractor] Using hybrid approach for ${source.fileName} (rule coverage: ${ruleResult.coverage})`);
+        
+        const ruleEntities = this.convertToEntities(ruleResult.entities, source, workspaceId);
+        const ruleRelationships = this.convertToRelationships(
+          ruleResult.relationships,
+          ruleEntities,
+          source,
+          workspaceId
+        );
+
+        // Supplement with LLM extraction
+        const llmResult = await this.extractWithLLM(source);
+        const llmEntities = this.convertToEntities(llmResult.entities, source, workspaceId);
+        const llmRelationships = this.convertToRelationships(
+          llmResult.relationships,
+          [...ruleEntities, ...llmEntities],
+          source,
+          workspaceId
+        );
+
+        // Merge results (rule-based takes precedence)
+        const mergedEntities = this.mergeEntities(ruleEntities, llmEntities);
+        const mergedRelationships = this.mergeRelationships(ruleRelationships, llmRelationships);
+
+        return {
+          entities: mergedEntities,
+          relationships: mergedRelationships,
+          method: 'hybrid',
+          confidence: (ruleResult.coverage + 0.7) / 2, // Average of rule coverage and LLM confidence
+        };
+      }
+
+      // Fall back to LLM-based extraction for complex/ambiguous content
+      console.log(`[Extractor] Using LLM extraction for ${source.fileName} (rule coverage too low)`);
       const result = await this.extractWithLLM(source);
       
-      // Convert extractions to domain entities
       const entities = this.convertToEntities(result.entities, source, workspaceId);
       const relationships = this.convertToRelationships(
         result.relationships,
@@ -78,11 +145,60 @@ export class EntityExtractor {
         workspaceId
       );
 
-      return { entities, relationships };
+      return { 
+        entities, 
+        relationships,
+        method: 'llm-assisted',
+        confidence: 0.7,
+      };
     } catch (error) {
       console.error('Entity extraction failed:', error);
-      return { entities: [], relationships: [] };
+      return { 
+        entities: [], 
+        relationships: [],
+        method: 'llm-assisted',
+        confidence: 0,
+      };
     }
+  }
+
+  /**
+   * Merge entities from rule-based and LLM extraction
+   * Rule-based entities take precedence for duplicates
+   */
+  private mergeEntities(ruleEntities: Entity[], llmEntities: Entity[]): Entity[] {
+    const merged = [...ruleEntities];
+    const existingNames = new Set(ruleEntities.map(e => e.name.toLowerCase()));
+
+    for (const llmEntity of llmEntities) {
+      if (!existingNames.has(llmEntity.name.toLowerCase())) {
+        merged.push(llmEntity);
+        existingNames.add(llmEntity.name.toLowerCase());
+      }
+    }
+
+    return merged;
+  }
+
+  /**
+   * Merge relationships from rule-based and LLM extraction
+   * Remove duplicates based on source/target/type combination
+   */
+  private mergeRelationships(ruleRels: Relationship[], llmRels: Relationship[]): Relationship[] {
+    const merged = [...ruleRels];
+    const existingKeys = new Set(
+      ruleRels.map(r => `${r.sourceEntityId}:${r.type}:${r.targetEntityId}`)
+    );
+
+    for (const llmRel of llmRels) {
+      const key = `${llmRel.sourceEntityId}:${llmRel.type}:${llmRel.targetEntityId}`;
+      if (!existingKeys.has(key)) {
+        merged.push(llmRel);
+        existingKeys.add(key);
+      }
+    }
+
+    return merged;
   }
 
   /**
